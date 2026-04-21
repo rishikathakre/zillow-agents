@@ -1,0 +1,15 @@
+state,city,current_median_price,forecast_1yr_pct,forecast_5yr_pct,market_temp
+CA,Los Angeles,950000,3.2,18.5,Hot
+CA,San Francisco,1400000,1.8,12.2,Warm
+CA,San Diego,810000,4.1,22.8,Hot
+TX,Austin,540000,5.8,32.4,Hot
+TX,Houston,350000,3.4,18.9,Warm
+TX,Dallas,420000,4.2,24.1,Hot
+NY,New York,1200000,2.1,11.8,Warm
+NY,Brooklyn,980000,3.5,19.2,Warm
+NY,Queens,720000,4.0,21.5,Warm
+FL,Miami,680000,6.2,35.8,Hot
+FL,Tampa,420000,5.4,29.7,Hot
+FL,Orlando,380000,4.8,27.2,Hot
+WA,Seattle,870000,3.8,21.4,Warm
+WA,Bellevue,1100000,2.9,16.8,Warm

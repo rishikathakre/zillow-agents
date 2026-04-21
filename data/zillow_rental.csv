@@ -1,0 +1,29 @@
+state,city,property_type,monthly_rent,vacancy_rate,median_income
+CA,Los Angeles,Single Family,3800,4.2,78000
+CA,Los Angeles,Condo,2900,3.8,78000
+CA,San Francisco,Single Family,5200,3.1,112000
+CA,San Francisco,Condo,3800,2.9,112000
+CA,San Diego,Single Family,3500,4.5,82000
+CA,San Diego,Townhouse,2900,4.1,82000
+TX,Austin,Single Family,2400,6.8,72000
+TX,Austin,Condo,1800,7.2,72000
+TX,Houston,Single Family,1900,7.1,65000
+TX,Houston,Townhouse,1650,7.8,65000
+TX,Dallas,Single Family,2200,6.5,68000
+TX,Dallas,Condo,1700,6.9,68000
+NY,New York,Condo,4200,2.8,75000
+NY,New York,Co-op,3600,2.5,75000
+NY,Brooklyn,Single Family,3800,3.2,72000
+NY,Brooklyn,Condo,2900,3.5,72000
+NY,Queens,Single Family,2800,3.8,68000
+NY,Queens,Condo,2200,4.1,68000
+FL,Miami,Single Family,2800,5.2,62000
+FL,Miami,Condo,2200,4.8,62000
+FL,Tampa,Single Family,2100,5.8,58000
+FL,Tampa,Townhouse,1800,6.2,58000
+FL,Orlando,Single Family,1900,6.5,55000
+FL,Orlando,Condo,1500,6.8,55000
+WA,Seattle,Single Family,3200,4.1,92000
+WA,Seattle,Condo,2400,3.8,92000
+WA,Bellevue,Single Family,3800,3.5,118000
+WA,Bellevue,Condo,2800,3.2,118000

@@ -1,0 +1,29 @@
+state,city,neighborhood,walk_score,transit_score,school_rating,crime_index
+CA,Los Angeles,Silver Lake,82,64,7,42
+CA,Los Angeles,Brentwood,71,48,9,22
+CA,San Francisco,Mission District,97,89,6,58
+CA,San Francisco,Pacific Heights,90,82,9,18
+CA,San Diego,La Jolla,68,42,9,15
+CA,San Diego,North Park,88,62,7,35
+TX,Austin,Domain,71,52,8,28
+TX,Austin,South Congress,88,64,7,32
+TX,Houston,Midtown,88,68,7,45
+TX,Houston,The Woodlands,42,28,9,12
+TX,Dallas,Uptown,92,74,7,38
+TX,Dallas,Plano,58,38,9,14
+NY,New York,Manhattan,99,100,7,55
+NY,New York,Upper West Side,99,98,9,28
+NY,Brooklyn,Park Slope,97,85,9,22
+NY,Brooklyn,Bushwick,89,82,6,52
+NY,Queens,Astoria,90,84,7,35
+NY,Queens,Forest Hills,82,79,8,22
+FL,Miami,Brickell,90,72,7,45
+FL,Miami,Coral Gables,68,48,9,18
+FL,Tampa,Hyde Park,82,55,8,32
+FL,Tampa,South Tampa,74,48,9,22
+FL,Orlando,Winter Park,62,38,9,18
+FL,Orlando,College Park,78,52,7,38
+WA,Seattle,Capitol Hill,97,85,8,48
+WA,Seattle,Beltown,90,88,7,58
+WA,Bellevue,Downtown Bellevue,72,65,9,18
+WA,Bellevue,Crossroads,68,58,8,22
