@@ -1,7 +1,7 @@
 """
-graph.py — LangGraph StateGraph wiring all agents together.
+graph.py -- LangGraph StateGraph wiring all agents together.
 
-Flow: price_agent → neighborhood_agent → rental_agent → forecast_agent → coordinator_agent
+Flow: price_agent -> neighborhood_agent -> rental_agent -> forecast_agent -> coordinator_agent
 """
 
 from __future__ import annotations

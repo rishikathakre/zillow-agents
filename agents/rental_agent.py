@@ -1,92 +1,84 @@
 """
-rental_agent.py — Gross rental yield score (0-100).
+rental_agent.py -- Real gross rental yield score (0-100).
 
-Loads data/zillow_rent.csv (monthly rent by ZIP) and data/zillow.csv (home
-price by ZIP), calculates:
-    gross_yield = (monthly_rent * 12) / home_price * 100
+Data sources
+------------
+1. Census ACS 5-year: median gross rent + median home value
+2. Zillow API: rentZestimate from listings (enrichment)
 
-Normalises on a capped scale where 8%+ yield earns a score of 100.
-
-Stores the result in state["rental_yield"].
+Scoring formula
+---------------
+  gross_yield = (annual_rent / home_price) * 100
+  score = clamp(gross_yield / 8.0 * 100, 0, 100)
+  where 8%+ annual yield -> score 100, 0% -> score 0
 """
-
 from __future__ import annotations
 
+import logging
+import sys
 from pathlib import Path
 
-import pandas as pd
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from services import census as svc_census
+from services.zillow_csv import get_median_price, get_median_rent
 from state import AgentState
 
-DATA_DIR   = Path(__file__).parent.parent / "data"
-ZILLOW_CSV = DATA_DIR / "zillow.csv"
-RENT_CSV   = DATA_DIR / "zillow_rent.csv"
+log = logging.getLogger(__name__)
 
-# Normalisation: 0% yield → score 0, ≥8% yield → score 100
-_MAX_YIELD_PCT = 8.0
+_MAX_YIELD_PCT = 8.0   # 8%+ annual yield -> score 100
 
 
 def _yield_to_score(gross_yield_pct: float) -> float:
-    """Linearly clamp gross yield % to [0, 100]."""
     return max(0.0, min(100.0, gross_yield_pct / _MAX_YIELD_PCT * 100))
 
 
 def rental_agent(state: AgentState) -> AgentState:
-    """
-    LangGraph node: populates state["rental_yield"].
-
-    Expected CSV schemas
-    --------------------
-    zillow.csv      : RegionName (ZIP as str), ... date columns (latest = home price)
-    zillow_rent.csv : RegionName (ZIP as str), ... date columns (latest = monthly rent)
-    """
     zip_code = state.get("zip_code", "")
-    print(f"\n[RentalAgent] Calculating rental yield for ZIP: {zip_code}")
+    env_keys = state.get("env_keys", {})
+    print(f"\n[RentalAgent] Fetching real rental data for ZIP: {zip_code}")
 
     try:
-        price_df = pd.read_csv(ZILLOW_CSV,  dtype={"RegionName": str})
-        rent_df  = pd.read_csv(RENT_CSV,    dtype={"RegionName": str})
+        # ── 1. Census ACS: median rent + median home value ────────────────────
+        census = svc_census.get_acs_data(zip_code)
+        monthly_rent = census.get("median_rent")
+        home_price   = census.get("median_home_value")
 
-        # Helper: get the most-recent date column value for a ZIP
-        def latest_value(df: pd.DataFrame, zip_str: str) -> float | None:
-            row = df[df["RegionName"] == zip_str]
-            if row.empty:
-                return None
-            date_cols = sorted(
-                [c for c in df.columns if c[:4].isdigit() and len(c) == 10],
-                key=lambda c: pd.to_datetime(c),
+        if monthly_rent:
+            print(f"[RentalAgent] Census median rent: ${monthly_rent:,}/mo")
+        if home_price:
+            print(f"[RentalAgent] Census median home value: ${home_price:,}")
+
+        # ── 2. Zillow CSV data enrichment ────────────────────────────────────
+        csv_price = get_median_price(zip_code)
+        csv_rent = get_median_rent(zip_code)
+        if csv_rent and csv_rent > 0:
+            print(f"[RentalAgent] Zillow CSV rent: ${csv_rent:,.0f}/mo")
+            monthly_rent = csv_rent if not monthly_rent else (
+                0.4 * monthly_rent + 0.6 * csv_rent
             )
-            if not date_cols:
-                return None
-            val = pd.to_numeric(row[date_cols[-1]].values[0], errors="coerce")
-            return None if pd.isna(val) else float(val)
+        if csv_price and csv_price > 0 and not home_price:
+            home_price = csv_price
 
-        home_price   = latest_value(price_df, str(zip_code))
-        monthly_rent = latest_value(rent_df,  str(zip_code))
+        # ── 3. Compute gross yield and score ─────────────────────────────────
+        if not monthly_rent:
+            print(f"[RentalAgent] No rent data for {zip_code} -- using neutral 50.0")
+            return {**state, "rental_yield": 50.0}
 
-        if home_price is None:
-            print(f"[RentalAgent] No home price found for ZIP {zip_code}.")
-            return {**state, "rental_yield": None}
-        if monthly_rent is None:
-            print(f"[RentalAgent] No rent data found for ZIP {zip_code}.")
-            return {**state, "rental_yield": None}
-        if home_price == 0:
-            print("[RentalAgent] Home price is zero; cannot compute yield.")
-            return {**state, "rental_yield": None}
+        if not home_price or home_price == 0:
+            print(f"[RentalAgent] No price data for {zip_code} -- using neutral 50.0")
+            return {**state, "rental_yield": 50.0}
 
-        gross_yield = (monthly_rent * 12) / home_price * 100
-        score       = _yield_to_score(gross_yield)
+        annual_rent  = monthly_rent * 12
+        gross_yield  = annual_rent / home_price * 100
+        score        = _yield_to_score(gross_yield)
 
-        print(
-            f"[RentalAgent] rent=${monthly_rent:,.0f}/mo  "
-            f"price=${home_price:,.0f}  "
-            f"yield={gross_yield:.2f}%  score={score:.1f}"
-        )
+        print(f"[RentalAgent] rent=${monthly_rent:,.0f}/mo  "
+              f"price=${home_price:,.0f}  "
+              f"yield={gross_yield:.2f}%  score={score:.1f}")
+
         return {**state, "rental_yield": round(score, 2)}
 
-    except FileNotFoundError as exc:
-        print(f"[RentalAgent] CSV not found: {exc.filename} — returning neutral score 50.0")
-        return {**state, "rental_yield": 50.0}
     except Exception as exc:
-        print(f"[RentalAgent] Unexpected error: {exc}")
-        return {**state, "rental_yield": None}
+        log.error("[RentalAgent] Unexpected error: %s", exc, exc_info=True)
+        return {**state, "rental_yield": 50.0}

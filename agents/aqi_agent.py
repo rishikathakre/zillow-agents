@@ -1,58 +1,63 @@
 """
-aqi_agent.py — Air quality score (0-100).
+aqi_agent.py -- Real air quality score (0-100) from AirNow + OpenWeatherMap.
 
-Loads data/aqi.csv (columns: zip_code, aqi_value, pm25, ozone).
-Score = 100 - min(aqi_value, 100), so a perfect AQI of 0 → score 100,
-and AQI ≥ 100 → score 0.
+Data source
+-----------
+services/aqi.py -> AirNow API (primary) + OpenWeatherMap Air Pollution (fallback)
 
-Stores the result in state["aqi_score"].
+Scoring formula
+---------------
+  score = max(0, 100 - aqi_value)
+  AQI   0–50  -> score 100–50  (Good / Moderate)
+  AQI  50–100 -> score 50–0   (Moderate -> Unhealthy for Sensitive)
+  AQI 100+    -> score 0       (Unhealthy and above)
 """
-
 from __future__ import annotations
 
+import logging
+import sys
 from pathlib import Path
 
-import pandas as pd
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from services import aqi as svc_aqi
 from state import AgentState
 
-DATA_DIR = Path(__file__).parent.parent / "data"
-AQI_CSV  = DATA_DIR / "aqi.csv"
+log = logging.getLogger(__name__)
 
 
 def aqi_agent(state: AgentState) -> AgentState:
-    """
-    LangGraph node: populates state["aqi_score"].
-
-    Expected CSV schema
-    -------------------
-    aqi.csv : zip_code (str), aqi_value (float), pm25 (float), ozone (float)
-    """
     zip_code = state.get("zip_code", "")
-    print(f"\n[AQIAgent] Calculating air quality score for ZIP: {zip_code}")
+    lat      = state.get("lat", 0.0)
+    lon      = state.get("lon", 0.0)
+    env_keys = state.get("env_keys", {})
+    print(f"\n[AQIAgent] Fetching real AQI data for ZIP: {zip_code} "
+          f"({lat:.3f}, {lon:.3f})")
+
+    airnow_key = env_keys.get("airnow", "")
+    owm_key    = env_keys.get("openweather", "")
 
     try:
-        df = pd.read_csv(AQI_CSV, dtype={"zip_code": str})
+        result = svc_aqi.get_aqi(zip_code, lat, lon, airnow_key, owm_key)
 
-        row = df[df["zip_code"] == str(zip_code)]
-        if row.empty:
-            print(f"[AQIAgent] No AQI data found for ZIP {zip_code}.")
-            return {**state, "aqi_score": None}
+        if not result:
+            print(f"[AQIAgent] No AQI data returned -- using neutral 50.0")
+            return {**state, "aqi_score": 50.0}
 
-        aqi_value = pd.to_numeric(row["aqi_value"].values[0], errors="coerce")
-        if pd.isna(aqi_value):
-            print("[AQIAgent] aqi_value is missing or non-numeric.")
-            return {**state, "aqi_score": None}
+        aqi_value = result.get("aqi_value") or 0
+        category  = result.get("category", "Unknown")
+        sources   = result.get("sources", [])
+        pollutants = result.get("pollutants", {})
 
-        score = 100.0 - min(float(aqi_value), 100.0)
-        score = max(0.0, min(100.0, score))
+        score = max(0.0, min(100.0, 100.0 - float(aqi_value)))
 
-        print(f"[AQIAgent] aqi_value={aqi_value:.1f}  score={score:.1f}")
+        print(f"[AQIAgent] AQI={aqi_value} ({category})  "
+              f"PM2.5={pollutants.get('pm25')} ug/m3  "
+              f"O3={pollutants.get('ozone')} ug/m3  "
+              f"sources={sources}  score={score:.1f}")
+
         return {**state, "aqi_score": round(score, 2)}
 
-    except FileNotFoundError:
-        print(f"[AQIAgent] CSV not found: {AQI_CSV} — returning neutral score 50.0")
-        return {**state, "aqi_score": 50.0}
     except Exception as exc:
-        print(f"[AQIAgent] Unexpected error: {exc}")
-        return {**state, "aqi_score": None}
+        log.error("[AQIAgent] Unexpected error: %s", exc, exc_info=True)
+        return {**state, "aqi_score": 50.0}

@@ -1,5 +1,5 @@
 """
-coordinator.py — LLM-powered coordinator agent.
+coordinator.py -- LLM-powered coordinator agent.
 
 Reads all 8 specialist scores from AgentState, computes a weighted composite
 score, builds a concise prompt, and calls gpt-4o-mini to produce a 4-sentence
@@ -88,7 +88,7 @@ _SYSTEM = (
     "(2) highlight the strongest positive factor, "
     "(3) flag the biggest risk or weakness, "
     "(4) give a one-sentence action for an investor. "
-    "Be specific — cite actual numbers. Do not use bullet points or headers."
+    "Be specific -- cite actual numbers. Do not use bullet points or headers."
 )
 
 
@@ -131,7 +131,7 @@ def coordinator_agent(state: AgentState) -> AgentState:
         # Fallback: plain-text summary without LLM
         report_body = (
             f"Composite investment score for ZIP {zip_code}: "
-            f"{composite:.1f}/100 — {rec}. "
+            f"{composite:.1f}/100 -- {rec}. "
             f"(LLM unavailable: {exc})"
         )
 

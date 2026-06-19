@@ -1,5 +1,5 @@
 """
-compare.py — Run the multi-agent pipeline for multiple ZIP codes and
+compare.py -- Run the multi-agent pipeline for multiple ZIP codes and
 print a side-by-side investment score comparison table.
 
 Each ZIP runs the full 8-agent LangGraph pipeline (price, neighborhood,

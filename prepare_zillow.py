@@ -1,5 +1,5 @@
 """
-prepare_zillow.py — Clean and prepare Zillow city-level Kaggle data for the
+prepare_zillow.py -- Clean and prepare Zillow city-level Kaggle data for the
 multi-agent pipeline.
 
 Source files (from ~/Downloads/archive/ or --source path):
@@ -7,8 +7,8 @@ Source files (from ~/Downloads/archive/ or --source path):
     City_Zri_AllHomesPlusMultifamily.csv   ← rental index (ZRI), wide format
 
 Output (written to data/):
-    zillow.csv       — RegionName=ZIP, date columns YYYY-MM-DD
-    zillow_rent.csv  — RegionName=ZIP, date columns YYYY-MM-DD
+    zillow.csv       -- RegionName=ZIP, date columns YYYY-MM-DD
+    zillow_rent.csv  -- RegionName=ZIP, date columns YYYY-MM-DD
 
 The Kaggle archive is city-level, not ZIP-level.  This script maps each
 target ZIP to its canonical city+state, extracts that city row, and
@@ -30,7 +30,7 @@ from pathlib import Path
 import pandas as pd
 
 # ---------------------------------------------------------------------------
-# ZIP → (city_name, state_abbrev)
+# ZIP -> (city_name, state_abbrev)
 # Each entry maps one ZIP code to the city whose data best represents it.
 # Add rows here to extend coverage; city names must match the Kaggle CSV.
 # ---------------------------------------------------------------------------
@@ -47,7 +47,7 @@ _RENT_FILE  = "City_Zri_AllHomesPlusMultifamily.csv"
 
 
 def _rent_col_to_date(col: str) -> str:
-    """Convert 'YYYY-MM' (ZRI format) → 'YYYY-MM-DD' (last day of month)."""
+    """Convert 'YYYY-MM' (ZRI format) -> 'YYYY-MM-DD' (last day of month)."""
     year, month = int(col[:4]), int(col[5:7])
     last_day = calendar.monthrange(year, month)[1]
     return f"{year:04d}-{month:02d}-{last_day:02d}"
@@ -67,7 +67,7 @@ def _extract_zip_rows(source_df: pd.DataFrame, mapping: dict[str, tuple[str, str
         mask = (source_df["RegionName"] == city) & (source_df["State"] == state)
         matches = source_df[mask]
         if matches.empty:
-            print(f"  WARNING: no row found for {city}, {state}  (ZIP {zip_code}) — skipping")
+            print(f"  WARNING: no row found for {city}, {state}  (ZIP {zip_code}) -- skipping")
             continue
         row = matches.iloc[0].copy()
         row["RegionName"] = zip_code
@@ -106,7 +106,7 @@ def prepare_rent(source_dir: Path, data_dir: Path) -> None:
 
     out = _extract_zip_rows(df, ZIP_TO_CITY)
 
-    # ZRI date columns are YYYY-MM (7 chars) — rename to YYYY-MM-DD
+    # ZRI date columns are YYYY-MM (7 chars) -- rename to YYYY-MM-DD
     raw_date_cols = sorted(
         [c for c in df.columns if len(c) == 7 and c[:4].isdigit()],
         key=lambda c: pd.to_datetime(c + "-01"),
@@ -129,13 +129,13 @@ def main() -> None:
     parser.add_argument("--source", default=str(default_src),
                         help=f"Directory containing the Kaggle archive CSVs (default: {default_src})")
     parser.add_argument("--list-zips", action="store_true",
-                        help="Print the ZIP → city mapping and exit")
+                        help="Print the ZIP -> city mapping and exit")
     args = parser.parse_args()
 
     if args.list_zips:
-        print("\nConfigured ZIP → city mapping:")
+        print("\nConfigured ZIP -> city mapping:")
         for z, (city, state) in ZIP_TO_CITY.items():
-            print(f"  {z}  →  {city}, {state}")
+            print(f"  {z}  ->  {city}, {state}")
         return
 
     source_dir = Path(args.source)

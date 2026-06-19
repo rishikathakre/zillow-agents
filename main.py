@@ -1,5 +1,5 @@
 """
-main.py — Entry point for the Zillow multi-agent investment analysis system.
+main.py -- Entry point for the Zillow multi-agent investment analysis system.
 
 Usage
 -----
@@ -12,9 +12,10 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-from dotenv import load_dotenv
+from dotenv import load_dotenv, dotenv_values
 
-load_dotenv(Path(__file__).parent / ".env")
+ENV_PATH = Path(__file__).parent / ".env"
+load_dotenv(ENV_PATH)
 
 from langgraph.graph import END, StateGraph
 
@@ -27,6 +28,7 @@ from agents.pollen_agent       import pollen_agent
 from agents.climate_agent      import climate_agent
 from agents.airbnb_agent       import airbnb_agent
 from agents.coordinator        import coordinator_agent
+from services import census as svc_census
 from state import AgentState
 
 BANNER = """
@@ -74,8 +76,32 @@ def main() -> None:
     print(BANNER)
     print(f"Analysing ZIP code: {zip_code}\n")
 
+    # Load API keys
+    env = dotenv_values(ENV_PATH)
+    env_keys = {
+        "openai":        env.get("OPENAI_API_KEY", ""),
+        "airnow":        env.get("AIRNOW_API_KEY", ""),
+        "openweather":   env.get("OPENWEATHER_API_KEY", ""),
+        "google":        env.get("GOOGLE_MAPS_API_KEY", ""),
+        "rapidapi_key":  env.get("RAPIDAPI_KEY", ""),
+        "rapidapi_host": env.get("RAPIDAPI_HOST", "zillow-property-data.p.rapidapi.com"),
+        "bls_key":       env.get("BLS_API_KEY", "").strip().rstrip("."),
+        "walkscore":     env.get("WALKSCORE_API_KEY", ""),
+    }
+
+    # Geocode the ZIP
+    try:
+        lat, lon = svc_census.geocode_zip(zip_code, env_keys["openweather"])
+        print(f"Geocoded {zip_code} -> ({lat:.4f}, {lon:.4f})")
+    except Exception as exc:
+        lat, lon = 0.0, 0.0
+        print(f"Geocoding failed for {zip_code}: {exc}")
+
     initial_state: AgentState = {
         "zip_code":          zip_code,
+        "lat":               lat,
+        "lon":               lon,
+        "env_keys":          env_keys,
         "price_score":        None,
         "neighborhood_score": None,
         "rental_yield":       None,
@@ -99,7 +125,7 @@ def main() -> None:
     if report:
         print(report)
     else:
-        print("No report generated — check that your CSV files are in data/")
+        print("No report generated -- check that your CSV files are in data/")
 
 
 if __name__ == "__main__":

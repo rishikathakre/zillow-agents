@@ -1,4 +1,4 @@
-"""agents/__init__.py — Exports all agent node functions for clean imports."""
+"""agents/__init__.py -- Exports all agent node functions for clean imports."""
 
 from agents.price_agent        import price_agent
 from agents.neighborhood_agent import neighborhood_agent

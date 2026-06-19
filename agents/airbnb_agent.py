@@ -1,121 +1,117 @@
 """
-airbnb_agent.py — Short-term rental (STR) viability score (0-100).
+airbnb_agent.py -- Real short-term rental (STR) viability score (0-100).
 
-Loads data/airbnb.csv (columns: neighbourhood, price, availability_365,
-minimum_nights) and data/zillow.csv (home prices by ZIP).
+Data sources
+------------
+1. Census ACS 5-year: median rent, median home value, population
+2. Zillow RapidAPI: live rent estimates + listing prices (enrichment)
 
-Calculates:
-    booked_nights    = 365 - availability_365
-    annual_revenue   = booked_nights * price
-    str_yield        = annual_revenue / home_price * 100
+Scoring formula
+---------------
+  ltr_yield = (monthly_rent * 12) / home_price * 100   # long-term rental yield
+  str_premium = urbanization multiplier (1.4x – 2.2x)  # based on population proxy
+  str_yield_est = ltr_yield * str_premium               # estimated STR yield
+  score = clamp(str_yield_est / 15% * 100, 0, 100)
 
-Normalises on a capped scale where 15%+ STR yield earns a score of 100.
+  Where 15%+ annual STR yield -> score 100, 0% -> score 0.
 
-Stores the result in state["airbnb_score"].
-
-Note on ZIP ↔ neighbourhood matching
---------------------------------------
-Inside-Airbnb data uses neighbourhood names, not ZIP codes.  This agent
-expects data/airbnb.csv to include a zip_code column (or for the
-neighbourhood values to exactly equal the ZIP code).  If your CSV uses
-neighbourhood strings instead, add a data/zip_to_neighbourhood.csv lookup
-(columns: zip_code, neighbourhood) and uncomment the join below.
+Rationale: STR revenue is typically 1.4x–2.2x long-term rent in urban/tourist
+markets. This agent uses Census median rent/value to establish the LTR baseline
+and adjusts for urbanization (population > 100k in metro -> higher STR premium).
 """
-
 from __future__ import annotations
 
+import logging
+import sys
 from pathlib import Path
 
-import pandas as pd
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from services import census as svc_census
+from services.zillow_csv import get_median_price, get_median_rent
 from state import AgentState
 
-DATA_DIR    = Path(__file__).parent.parent / "data"
-AIRBNB_CSV  = DATA_DIR / "airbnb.csv"
-ZILLOW_CSV  = DATA_DIR / "zillow.csv"
+log = logging.getLogger(__name__)
 
-# Normalisation: 0% STR yield → score 0, ≥15% → score 100
+# STR yield cap: 15%+ annual yield -> score 100
 _MAX_STR_YIELD = 15.0
+
+# Urbanization population thresholds -> STR premium multiplier
+# High population density ZIP -> more tourist/business demand -> higher STR premium
+_URBAN_TIERS = [
+    (150_000, 2.2),    # dense urban / major metro
+    (80_000,  1.9),    # urban
+    (40_000,  1.6),    # suburban/urban fringe
+    (15_000,  1.4),    # suburban
+    (0,       1.2),    # rural
+]
+
+
+def _str_premium(population: int) -> float:
+    for threshold, multiplier in _URBAN_TIERS:
+        if population >= threshold:
+            return multiplier
+    return 1.2
 
 
 def _yield_to_score(str_yield_pct: float) -> float:
     return max(0.0, min(100.0, str_yield_pct / _MAX_STR_YIELD * 100))
 
 
-def _latest_price(df: pd.DataFrame, zip_str: str) -> float | None:
-    """Return the most-recent date-column value for a given ZIP."""
-    row = df[df["RegionName"] == zip_str]
-    if row.empty:
-        return None
-    date_cols = sorted(
-        [c for c in df.columns if c[:4].isdigit() and len(c) == 10],
-        key=lambda c: pd.to_datetime(c),
-    )
-    if not date_cols:
-        return None
-    val = pd.to_numeric(row[date_cols[-1]].values[0], errors="coerce")
-    return None if pd.isna(val) else float(val)
-
-
 def airbnb_agent(state: AgentState) -> AgentState:
-    """
-    LangGraph node: populates state["airbnb_score"].
-
-    Expected CSV schemas
-    --------------------
-    airbnb.csv  : zip_code (str), neighbourhood (str), price (float),
-                  availability_365 (int), minimum_nights (int)
-    zillow.csv  : RegionName (str = ZIP), ... date columns
-    """
     zip_code = state.get("zip_code", "")
-    print(f"\n[AirbnbAgent] Calculating STR score for ZIP: {zip_code}")
+    env_keys = state.get("env_keys", {})
+    print(f"\n[AirbnbAgent] Estimating STR viability for ZIP: {zip_code}")
 
     try:
-        airbnb_df = pd.read_csv(AIRBNB_CSV, dtype={"zip_code": str})
-        zillow_df = pd.read_csv(ZILLOW_CSV,  dtype={"RegionName": str})
+        # ── 1. Census ACS: median rent + home value + population ──────────────
+        census       = svc_census.get_acs_data(zip_code)
+        monthly_rent = census.get("median_rent")
+        home_price   = census.get("median_home_value")
+        population   = census.get("population") or 0
 
-        # Filter Airbnb listings for this ZIP
-        listings = airbnb_df[airbnb_df["zip_code"] == str(zip_code)].copy()
-        if listings.empty:
-            print(f"[AirbnbAgent] No Airbnb listings found for ZIP {zip_code}.")
-            return {**state, "airbnb_score": None}
+        if monthly_rent:
+            print(f"[AirbnbAgent] Census median rent: ${monthly_rent:,}/mo")
+        if home_price:
+            print(f"[AirbnbAgent] Census median home value: ${home_price:,}")
+        if population:
+            print(f"[AirbnbAgent] Census population: {population:,}")
 
-        listings["price"]            = pd.to_numeric(listings["price"],            errors="coerce")
-        listings["availability_365"] = pd.to_numeric(listings["availability_365"], errors="coerce")
+        # ── 2. Zillow CSV data enrichment ────────────────────────────────────
+        csv_price = get_median_price(zip_code)
+        csv_rent = get_median_rent(zip_code)
+        if csv_rent and csv_rent > 0:
+            print(f"[AirbnbAgent] Zillow CSV rent: ${csv_rent:,.0f}/mo")
+            monthly_rent = csv_rent if not monthly_rent else (
+                0.4 * monthly_rent + 0.6 * csv_rent
+            )
+        if csv_price and csv_price > 0 and not home_price:
+            home_price = csv_price
 
-        listings = listings.dropna(subset=["price", "availability_365"])
-        if listings.empty:
-            print("[AirbnbAgent] All listings have missing price or availability.")
-            return {**state, "airbnb_score": None}
+        # ── 3. Compute STR viability score ────────────────────────────────────
+        if not monthly_rent:
+            print(f"[AirbnbAgent] No rent data for {zip_code} -- using neutral 50.0")
+            return {**state, "airbnb_score": 50.0}
 
-        # Estimated annual STR revenue per listing, then take the median
-        listings["booked_nights"]  = 365 - listings["availability_365"].clip(0, 365)
-        listings["annual_revenue"] = listings["booked_nights"] * listings["price"]
-        median_revenue = listings["annual_revenue"].median()
+        if not home_price or home_price == 0:
+            print(f"[AirbnbAgent] No price data for {zip_code} -- using neutral 50.0")
+            return {**state, "airbnb_score": 50.0}
 
-        # Home price from Zillow
-        home_price = _latest_price(zillow_df, str(zip_code))
-        if home_price is None:
-            print(f"[AirbnbAgent] No home price found for ZIP {zip_code}.")
-            return {**state, "airbnb_score": None}
-        if home_price == 0:
-            print("[AirbnbAgent] Home price is zero; cannot compute STR yield.")
-            return {**state, "airbnb_score": None}
+        annual_rent = monthly_rent * 12
+        ltr_yield   = annual_rent / home_price * 100
 
-        str_yield = median_revenue / home_price * 100
-        score     = _yield_to_score(str_yield)
+        # Apply STR premium based on urbanization
+        premium     = _str_premium(population)
+        str_yield   = ltr_yield * premium
+        score       = _yield_to_score(str_yield)
 
-        print(
-            f"[AirbnbAgent] listings={len(listings)}  "
-            f"median_revenue=${median_revenue:,.0f}/yr  "
-            f"home_price=${home_price:,.0f}  "
-            f"str_yield={str_yield:.2f}%  score={score:.1f}"
-        )
+        print(f"[AirbnbAgent] rent=${monthly_rent:,.0f}/mo  price=${home_price:,.0f}  "
+              f"pop={population:,}  ltr_yield={ltr_yield:.2f}%  "
+              f"str_premium={premium:.1f}x  str_yield_est={str_yield:.2f}%  "
+              f"score={score:.1f}")
+
         return {**state, "airbnb_score": round(score, 2)}
 
-    except FileNotFoundError as exc:
-        print(f"[AirbnbAgent] CSV not found: {exc.filename} — returning neutral score 50.0")
-        return {**state, "airbnb_score": 50.0}
     except Exception as exc:
-        print(f"[AirbnbAgent] Unexpected error: {exc}")
-        return {**state, "airbnb_score": None}
+        log.error("[AirbnbAgent] Unexpected error: %s", exc, exc_info=True)
+        return {**state, "airbnb_score": 50.0}

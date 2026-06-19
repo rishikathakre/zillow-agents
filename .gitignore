@@ -4,3 +4,12 @@ __pycache__/
 .env
 .codex/
 data/auth/
+frontend/node_modules/
+frontend/dist/
+frontend/.package-lock.json
+analyses.db
+backend_err.log
+uvicorn_debug.log
+data/api_cache.db
+data/cache.db
+data/analysis_cache.json

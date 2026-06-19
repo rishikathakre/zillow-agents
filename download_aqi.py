@@ -1,5 +1,5 @@
 """
-download_aqi.py — Fetch AQI data from EPA AirNow API and write data/aqi.csv.
+download_aqi.py -- Fetch AQI data from EPA AirNow API and write data/aqi.csv.
 
 Two modes
 ---------
@@ -91,7 +91,7 @@ def fetch_live(api_key: str, zip_codes: list[str]) -> pd.DataFrame:
             resp.raise_for_status()
             observations = resp.json()
         except requests.RequestException as exc:
-            print(f"  [WARN] ZIP {zip_code}: request failed — {exc}")
+            print(f"  [WARN] ZIP {zip_code}: request failed -- {exc}")
             continue
 
         if not observations:
@@ -143,7 +143,7 @@ def main() -> None:
     api_key = os.getenv("AIRNOW_API_KEY", "").strip()
     if not api_key:
         print(
-            "[INFO] AIRNOW_API_KEY not found in .env — falling back to sample data.\n"
+            "[INFO] AIRNOW_API_KEY not found in .env -- falling back to sample data.\n"
             "       Register at https://docs.airnowapi.org/account/request\n"
             "       then add AIRNOW_API_KEY=<your-key> to your .env file.\n"
         )

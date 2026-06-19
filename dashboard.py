@@ -106,10 +106,156 @@ def run_zip(zip_code: str) -> AgentState:
     return result
 
 
+def clamp(value: float, lower: float = 0.0, upper: float = 100.0) -> float:
+    return max(lower, min(upper, value))
+
+
+def format_currency(value: float) -> str:
+    return f"${value:,.0f}"
+
+
+def property_recommendation(score: float) -> str:
+    if score >= 72:
+        return "STRONG BUY"
+    if score >= 58:
+        return "GOOD DEAL"
+    if score >= 45:
+        return "MAYBE"
+    return "PASS"
+
+
+def property_verdict_color(verdict: str) -> str:
+    colors = {
+        "STRONG BUY": "#16a34a",
+        "GOOD DEAL": "#0f766e",
+        "MAYBE": "#ea580c",
+        "PASS": "#dc2626",
+    }
+    return colors.get(verdict, "#64748b")
+
+
+def condition_to_score(condition: str) -> float:
+    scores = {
+        "Turnkey": 92.0,
+        "Light updates": 76.0,
+        "Needs work": 54.0,
+        "Heavy rehab": 34.0,
+    }
+    return scores[condition]
+
+
+def strategy_target_yield(strategy: str) -> float:
+    targets = {
+        "Long-term rental": 6.0,
+        "Fix and flip": 4.0,
+        "Short-term rental": 8.0,
+        "Primary home": 3.5,
+    }
+    return targets[strategy]
+
+
+def analyze_property(
+    *,
+    address: str,
+    zip_code: str,
+    asking_price: float,
+    estimated_value: float,
+    estimated_rent: float,
+    beds: int,
+    baths: float,
+    sqft: int,
+    year_built: int,
+    condition: str,
+    strategy: str,
+    photo_count: int,
+) -> dict[str, object]:
+    market_state = run_zip(zip_code)
+    market_score = weighted_composite(market_state) or 50.0
+
+    price_advantage = ((estimated_value - asking_price) / asking_price) * 100 if asking_price else 0.0
+    price_score = clamp(55 + price_advantage * 3.2)
+
+    annual_rent = estimated_rent * 12
+    gross_yield = (annual_rent / asking_price) * 100 if asking_price else 0.0
+    yield_target = strategy_target_yield(strategy)
+    yield_score = clamp((gross_yield / yield_target) * 100)
+
+    condition_score = condition_to_score(condition)
+    size_score = clamp(40 + beds * 8 + baths * 6 + min(sqft, 4000) / 55)
+    age_score = clamp(100 - max(0, 2026 - year_built) * 0.9)
+    photo_score = clamp(35 + photo_count * 10)
+
+    overall_score = (
+        market_score * 0.30
+        + price_score * 0.24
+        + yield_score * 0.18
+        + condition_score * 0.12
+        + size_score * 0.08
+        + age_score * 0.04
+        + photo_score * 0.04
+    )
+    overall_score = round(clamp(overall_score), 1)
+    verdict = property_recommendation(overall_score)
+
+    reasons: list[str] = []
+    if price_advantage >= 8:
+        reasons.append("priced well below your estimated value")
+    elif price_advantage >= 2:
+        reasons.append("slightly below your estimated value")
+    elif price_advantage <= -8:
+        reasons.append("priced well above your estimated value")
+    else:
+        reasons.append("roughly in line with estimated market value")
+
+    if gross_yield >= yield_target:
+        reasons.append(f"rental yield looks attractive at {gross_yield:.1f}%")
+    else:
+        reasons.append(f"rental yield looks thin at {gross_yield:.1f}%")
+
+    if condition_score >= 80:
+        reasons.append("property condition suggests lower near-term repair risk")
+    elif condition_score <= 45:
+        reasons.append("renovation risk is significant")
+
+    summary = (
+        f"{address or 'This property'} scores {overall_score}/100 and rates as {verdict}. "
+        f"The ZIP-level market outlook for {zip_code} is {market_score:.1f}/100, and the home is {reasons[0]}. "
+        f"For a {strategy.lower()} strategy, the estimated yield is {gross_yield:.1f}% and {reasons[1]}. "
+        f"Condition appears to be {condition.lower()}, so {reasons[2] if len(reasons) > 2 else 'execution risk looks moderate'}."
+    )
+
+    return {
+        "address": address,
+        "zip_code": zip_code,
+        "verdict": verdict,
+        "overall_score": overall_score,
+        "market_score": round(market_score, 1),
+        "price_score": round(price_score, 1),
+        "yield_score": round(yield_score, 1),
+        "condition_score": round(condition_score, 1),
+        "size_score": round(size_score, 1),
+        "age_score": round(age_score, 1),
+        "photo_score": round(photo_score, 1),
+        "estimated_yield": round(gross_yield, 1),
+        "price_advantage": round(price_advantage, 1),
+        "summary": summary,
+        "market_state": market_state,
+        "photo_count": photo_count,
+        "asking_price": asking_price,
+        "estimated_value": estimated_value,
+        "estimated_rent": estimated_rent,
+        "strategy": strategy,
+        "condition": condition,
+    }
+
+
 def init_session_state() -> None:
     st.session_state.setdefault("results", {})
     st.session_state.setdefault("selected_zips", list(KNOWN_ZIPS.keys())[:3])
     st.session_state.setdefault("user", None)
+    st.session_state.setdefault("property_result", None)
+    st.session_state.setdefault("property_history", [])
+    st.session_state.setdefault("property_uploaded_files", None)
 
 
 def inject_styles() -> None:
@@ -198,15 +344,15 @@ def render_public_home() -> None:
         st.markdown(
             """
             <div class="hero-card">
-                <div class="eyebrow">Investor Workspace</div>
-                <div class="hero-title">Turn your Zillow analysis engine into a client-ready real estate website.</div>
+                <div class="eyebrow">Property Checker</div>
+                <div class="hero-title">Let customers upload a house, review photos, and get a simple buy-or-pass prediction.</div>
                 <div class="hero-copy">
-                    Users sign in, run ZIP-code analysis, compare markets, and read investment reports from one clean product interface.
-                    The analytics are still here, but now they live behind a proper account experience.
+                    This version is built more like a customer product. People sign in, enter a specific property,
+                    upload listing photos, and get a verdict that combines home-level details with your ZIP-level market engine.
                 </div>
-                <div class="mini-stat">Login and signup</div>
-                <div class="mini-stat">ZIP comparison workspace</div>
-                <div class="mini-stat">Saved session results</div>
+                <div class="mini-stat">Photo upload</div>
+                <div class="mini-stat">House-by-house prediction</div>
+                <div class="mini-stat">Market + property scoring</div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -214,9 +360,9 @@ def render_public_home() -> None:
 
         feature_cols = st.columns(3, gap="medium")
         features = [
-            ("Private Access", "Keep the app behind authentication so visitors enter through a real product flow."),
-            ("Guided Analysis", "Let users choose ZIP codes, run your agent pipeline, and understand the results."),
-            ("Readable Reports", "Show scores, recommendations, and narrative takeaways in a website-style workspace."),
+            ("Upload Photos", "Customers can bring in listing images so each property feels real instead of abstract."),
+            ("Check One House", "Capture asking price, rent, beds, baths, size, and condition for a specific address."),
+            ("Simple Verdict", "Return a clear score and explain if the property looks promising or risky."),
         ]
         for col, (title, copy) in zip(feature_cols, features):
             with col:
@@ -274,7 +420,7 @@ def render_topbar() -> None:
                 <div class="eyebrow">Logged In</div>
                 <div class="hero-title" style="font-size:2.2rem;">Welcome, {user['name']}.</div>
                 <div class="hero-copy">
-                    This is now structured like a product workspace: users sign in, choose markets, run analysis, and review investment recommendations in one place.
+                    Customers can now evaluate an individual house instead of only looking at dashboards. Add the property details, show the photos, and return an easy-to-understand verdict.
                 </div>
             </div>
             """,
@@ -292,7 +438,7 @@ def render_topbar() -> None:
 
 def render_workspace_controls() -> list[str]:
     with st.sidebar:
-        st.header("Workspace Controls")
+        st.header("Market Inputs")
         selected_known = st.multiselect(
             "Featured ZIP codes",
             options=list(KNOWN_ZIPS.keys()),
@@ -309,11 +455,11 @@ def render_workspace_controls() -> list[str]:
 
         st.session_state["selected_zips"] = selected_known
 
-        analyze = st.button("Run Analysis", type="primary", use_container_width=True)
-        clear = st.button("Clear Workspace", use_container_width=True)
+        analyze = st.button("Refresh Market Data", type="primary", use_container_width=True)
+        clear = st.button("Clear Market Cache", use_container_width=True)
 
         st.divider()
-        st.caption("Scoring model")
+        st.caption("ZIP scoring model")
         for key, label in SCORE_FIELDS:
             st.progress(WEIGHTS[key], text=f"{label} ({int(WEIGHTS[key] * 100)}%)")
 
@@ -441,44 +587,216 @@ def render_reports(active_zips: list[str]) -> None:
                 st.info("No narrative report was generated for this ZIP code.")
 
 
+def render_property_checker() -> None:
+    st.markdown(
+        """
+        <div class="app-card">
+            <div class="section-title">Property Check</div>
+            <div class="muted-copy">
+                Enter the house details customers care about, upload listing photos, and generate a simple verdict.
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    with st.form("property_check_form"):
+        address_col, zip_col = st.columns([1.7, 0.7])
+        with address_col:
+            address = st.text_input("Property address", placeholder="123 Main St, Beverly Hills, CA")
+        with zip_col:
+            zip_code = st.text_input("ZIP code", value="90210", max_chars=5)
+
+        price_col, value_col, rent_col = st.columns(3)
+        with price_col:
+            asking_price = st.number_input("Asking price", min_value=50000, value=850000, step=10000)
+        with value_col:
+            estimated_value = st.number_input("Estimated market value", min_value=50000, value=900000, step=10000)
+        with rent_col:
+            estimated_rent = st.number_input("Estimated monthly rent", min_value=500, value=4500, step=100)
+
+        bed_col, bath_col, sqft_col, year_col = st.columns(4)
+        with bed_col:
+            beds = st.number_input("Beds", min_value=1, max_value=12, value=3, step=1)
+        with bath_col:
+            baths = st.number_input("Baths", min_value=1.0, max_value=10.0, value=2.0, step=0.5)
+        with sqft_col:
+            sqft = st.number_input("Square feet", min_value=400, max_value=10000, value=1850, step=50)
+        with year_col:
+            year_built = st.number_input("Year built", min_value=1900, max_value=2026, value=1998, step=1)
+
+        condition_col, strategy_col = st.columns(2)
+        with condition_col:
+            condition = st.selectbox("Condition", ["Turnkey", "Light updates", "Needs work", "Heavy rehab"])
+        with strategy_col:
+            strategy = st.selectbox(
+                "Strategy",
+                ["Long-term rental", "Fix and flip", "Short-term rental", "Primary home"],
+            )
+
+        photos = st.file_uploader(
+            "Listing photos",
+            type=["png", "jpg", "jpeg", "webp"],
+            accept_multiple_files=True,
+            help="Photos are displayed to the customer and used as a simple completeness signal in the score.",
+        )
+        submitted = st.form_submit_button("Check This House", type="primary", use_container_width=True)
+
+    if submitted:
+        clean_zip = zip_code.strip()
+        if not (clean_zip.isdigit() and len(clean_zip) == 5):
+            st.error("Please enter a valid 5-digit ZIP code.")
+        else:
+            st.session_state["property_uploaded_files"] = list(photos or [])
+            result = analyze_property(
+                address=address.strip(),
+                zip_code=clean_zip,
+                asking_price=float(asking_price),
+                estimated_value=float(estimated_value),
+                estimated_rent=float(estimated_rent),
+                beds=int(beds),
+                baths=float(baths),
+                sqft=int(sqft),
+                year_built=int(year_built),
+                condition=condition,
+                strategy=strategy,
+                photo_count=len(photos or []),
+            )
+            st.session_state["property_result"] = result
+            st.session_state["results"][clean_zip] = result["market_state"]
+            st.session_state["property_history"] = [
+                {
+                    "address": result["address"] or "Unnamed property",
+                    "zip_code": result["zip_code"],
+                    "verdict": result["verdict"],
+                    "overall_score": result["overall_score"],
+                    "asking_price": result["asking_price"],
+                },
+                *st.session_state["property_history"][:5],
+            ]
+
+    result = st.session_state["property_result"]
+    if not result:
+        return
+
+    st.subheader("Current Verdict")
+    verdict_color = property_verdict_color(str(result["verdict"]))
+    hero_left, hero_right = st.columns([1.15, 0.85], gap="large")
+
+    with hero_left:
+        st.markdown(
+            f"""
+            <div class="hero-card">
+                <div class="eyebrow">{result['zip_code']} Property Check</div>
+                <div class="hero-title" style="font-size:2.3rem;">{result['address'] or 'Selected property'}</div>
+                <div class="hero-copy">{result['summary']}</div>
+                <div class="mini-stat">Verdict: {result['verdict']}</div>
+                <div class="mini-stat">Asking: {format_currency(float(result['asking_price']))}</div>
+                <div class="mini-stat">Est. rent: {format_currency(float(result['estimated_rent']))}/mo</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    with hero_right:
+        st.markdown(
+            f"""
+            <div class="metric-card">
+                <div class="eyebrow">Overall score</div>
+                <div class="score-number" style="color:{verdict_color};">{result['overall_score']}</div>
+                <div class="muted-copy">Prediction: {result['verdict']}</div>
+                <div class="mini-stat">Market: {result['market_score']}/100</div>
+                <div class="mini-stat">Yield: {result['estimated_yield']}%</div>
+                <div class="mini-stat">Discount: {result['price_advantage']}%</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    score_cols = st.columns(6)
+    score_cards = [
+        ("Market", result["market_score"]),
+        ("Price", result["price_score"]),
+        ("Yield", result["yield_score"]),
+        ("Condition", result["condition_score"]),
+        ("Layout", result["size_score"]),
+        ("Photos", result["photo_score"]),
+    ]
+    for col, (label, value) in zip(score_cols, score_cards):
+        with col:
+            st.markdown(
+                f"""
+                <div class="metric-card">
+                    <div class="eyebrow">{label}</div>
+                    <div class="score-number" style="font-size:1.6rem;">{value}</div>
+                    <div class="muted-copy">out of 100</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+    uploaded_files = st.session_state.get("property_uploaded_files")
+    if uploaded_files:
+        st.subheader("Property Photos")
+        st.image(uploaded_files, use_container_width=True)
+
+
+def render_property_gallery() -> None:
+    uploaded_files = st.session_state.get("property_uploaded_files")
+    if uploaded_files:
+        st.markdown('<div class="app-card"><div class="section-title">Listing Photos</div>', unsafe_allow_html=True)
+        st.image(uploaded_files, use_container_width=True)
+        st.markdown("</div>", unsafe_allow_html=True)
+    else:
+        st.markdown(
+            """
+            <div class="app-card">
+                <div class="section-title">No Photos Yet</div>
+                <div class="muted-copy">Upload listing photos in the Property Check tab and they will appear here.</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+
+def render_property_history() -> None:
+    history = st.session_state["property_history"]
+    if not history:
+        st.info("Checked houses will show up here after the first property analysis.")
+        return
+
+    for item in history:
+        st.markdown(
+            f"""
+            <div class="app-card">
+                <div class="section-title">{item['address']}</div>
+                <div class="muted-copy">
+                    ZIP {item['zip_code']} · {format_currency(float(item['asking_price']))} ·
+                    Score {item['overall_score']}/100 · Verdict {item['verdict']}
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+
 def render_authenticated_app() -> None:
     render_topbar()
     active_zips = render_workspace_controls()
 
-    tabs = st.tabs(["Overview", "Analysis", "Reports", "Account"])
+    tabs = st.tabs(["Property Check", "Photos", "Market Intel", "Saved Checks", "Account"])
 
     with tabs[0]:
-        if not active_zips:
-            st.markdown(
-                """
-                <div class="app-card">
-                    <div class="section-title">Start With a Market</div>
-                    <div class="muted-copy">
-                        Choose one or more ZIP codes from the sidebar and run analysis to populate this workspace.
-                    </div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-        else:
-            render_summary_cards(active_zips)
-            st.markdown('<div class="app-card">', unsafe_allow_html=True)
-            st.markdown('<div class="section-title">How this feels now</div>', unsafe_allow_html=True)
-            st.markdown(
-                """
-                <div class="muted-copy">
-                    Instead of landing on a raw heatmap dashboard, your users now get a member-style product flow:
-                    sign in, open a workspace, run analysis, and review recommendations.
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-            st.markdown("</div>", unsafe_allow_html=True)
+        render_property_checker()
 
     with tabs[1]:
+        render_property_gallery()
+
+    with tabs[2]:
         if not active_zips:
             st.info("Run at least one ZIP code analysis to view charts.")
         else:
+            render_summary_cards(active_zips)
             chart_left, chart_right = st.columns(2)
             with chart_left:
                 st.markdown('<div class="app-card"><div class="section-title">Market Shape</div>', unsafe_allow_html=True)
@@ -489,15 +807,14 @@ def render_authenticated_app() -> None:
                 render_heatmap(active_zips)
                 st.markdown("</div>", unsafe_allow_html=True)
 
-    with tabs[2]:
-        if not active_zips:
-            st.info("Reports will appear here after analysis runs.")
-        else:
-            st.markdown('<div class="app-card"><div class="section-title">Investment Reports</div>', unsafe_allow_html=True)
+    with tabs[3]:
+        render_property_history()
+        if active_zips:
+            st.markdown('<div class="app-card"><div class="section-title">Market Reports</div>', unsafe_allow_html=True)
             render_reports(active_zips)
             st.markdown("</div>", unsafe_allow_html=True)
 
-    with tabs[3]:
+    with tabs[4]:
         user = st.session_state["user"]
         st.markdown(
             f"""
