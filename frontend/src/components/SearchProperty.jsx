@@ -4,56 +4,91 @@ import ListingGrid from "./ListingGrid";
 import PropertyDetail from "./PropertyDetail";
 
 const FEATURED = [
-  { query: "New York, NY", label: "New York", emoji: "🗽" },
-  { query: "Miami, FL", label: "Miami", emoji: "🌴" },
-  { query: "Austin, TX", label: "Austin", emoji: "🤠" },
-  { query: "Seattle, WA", label: "Seattle", emoji: "🌧️" },
-  { query: "Denver, CO", label: "Denver", emoji: "🏔️" },
-  { query: "Nashville, TN", label: "Nashville", emoji: "🎸" },
+  { query: "New York, NY", label: "New York" },
+  { query: "Miami, FL", label: "Miami" },
+  { query: "Austin, TX", label: "Austin" },
+  { query: "Seattle, WA", label: "Seattle" },
+  { query: "Denver, CO", label: "Denver" },
+  { query: "Nashville, TN", label: "Nashville" },
 ];
 
 function HomeView({ onSearch }) {
   return (
-    <div className="space-y-10">
-      {/* Hero search */}
-      <div className="text-center space-y-4 pt-8">
-        <h1 className="text-4xl font-extrabold text-gray-900">
+    <div className="space-y-0">
+      {/* Hero */}
+      <div style={{
+        background: "#F0F9FF",
+        borderBottom: "1px solid #BAE6FD",
+        padding: "32px 32px 24px",
+        textAlign: "center",
+        borderRadius: "12px 12px 0 0",
+        marginBottom: 0,
+      }}>
+        <p style={{
+          fontSize: 10, fontWeight: 600, color: "#7DD3FC",
+          letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10,
+        }}>
+          Agentic AI &middot; 8 specialist agents &middot; Real data
+        </p>
+        <h1 style={{
+          fontSize: 28, fontWeight: 800, color: "#0C4A6E",
+          letterSpacing: "-0.03em", marginBottom: 6,
+        }}>
           Find your next investment property
         </h1>
-        <p className="text-gray-500 text-lg">
-          Real AQI, pollen, flood risk & AI scoring — the data Zillow removed.
+        <p style={{ fontSize: 13, color: "#0369A1", marginBottom: 20 }}>
+          Real AQI, pollen, flood risk &amp; AI scoring -- the data Zillow removed.
         </p>
-        <SearchBar onSearch={onSearch} />
-      </div>
+        <div style={{ maxWidth: 560, margin: "0 auto" }}>
+          <SearchBar onSearch={onSearch} />
+        </div>
 
-      {/* Featured cities */}
-      <div>
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Explore popular markets</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        {/* City chips */}
+        <div className="flex gap-2 flex-wrap justify-center" style={{ marginTop: 12 }}>
           {FEATURED.map(f => (
             <button key={f.query} onClick={() => onSearch(f.query)}
-              className="flex flex-col items-center gap-2 p-4 bg-white rounded-2xl border border-gray-200 hover:border-blue-400 hover:shadow-md transition-all group">
-              <span className="text-3xl">{f.emoji}</span>
-              <span className="text-sm font-semibold text-gray-700 group-hover:text-blue-600">{f.label}</span>
+              style={{
+                border: "1px solid #BAE6FD", borderRadius: 20,
+                padding: "4px 12px", fontSize: 11, color: "#0369A1",
+                background: "white", cursor: "pointer", fontWeight: 500,
+                transition: "all 150ms",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "#0EA5E9";
+                e.currentTarget.style.color = "white";
+                e.currentTarget.style.borderColor = "#0EA5E9";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "white";
+                e.currentTarget.style.color = "#0369A1";
+                e.currentTarget.style.borderColor = "#BAE6FD";
+              }}
+            >
+              {f.label}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Why PropIQ callout */}
-      <div className="bg-gradient-to-r from-slate-800 to-slate-900 rounded-2xl p-6 text-white">
-        <h3 className="font-bold text-xl mb-3">Why PropIQ shows what Zillow won't</h3>
+      {/* Why PropIQ */}
+      <div style={{
+        background: "white", border: "1px solid #E2E8F0",
+        borderRadius: 12, padding: 24, marginTop: 24,
+      }}>
+        <h3 style={{ fontWeight: 600, color: "#0F172A", fontSize: 18, marginBottom: 16 }}>
+          Why PropIQ shows what Zillow won't
+        </h3>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
           {[
-            { icon: "🌬️", title: "AQI & Air Quality", desc: "Real-time air quality data Zillow quietly removed in 2025." },
-            { icon: "🌊", title: "Flood & Climate Risk", desc: "FEMA flood zones, wildfire risk, and heat exposure — all in one score." },
-            { icon: "🤖", title: "AI Investment Scoring", desc: "8 specialized agents analyze each ZIP code for true investment potential." },
+            { title: "AQI & Air Quality", desc: "Real-time air quality data Zillow quietly removed in 2025." },
+            { title: "Flood & Climate Risk", desc: "FEMA flood zones, wildfire risk, and heat exposure -- all in one score." },
+            { title: "AI Investment Scoring", desc: "8 specialized agents analyze each ZIP code for true investment potential." },
           ].map(c => (
             <div key={c.title} className="flex gap-3">
-              <span className="text-2xl shrink-0">{c.icon}</span>
+              <div className="w-2 h-2 rounded-full mt-1.5 shrink-0" style={{ background: "#0EA5E9" }} />
               <div>
-                <div className="font-semibold">{c.title}</div>
-                <div className="text-slate-300 text-xs mt-1">{c.desc}</div>
+                <div style={{ fontWeight: 600, color: "#0F172A" }}>{c.title}</div>
+                <div style={{ color: "#475569", fontSize: 12, marginTop: 4 }}>{c.desc}</div>
               </div>
             </div>
           ))}
@@ -66,9 +101,12 @@ function HomeView({ onSearch }) {
 function ResultsView({ query, onSelect, onBack, onNewSearch }) {
   return (
     <div className="space-y-5">
-      {/* Top bar */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-        <button onClick={onBack} className="flex items-center gap-2 text-gray-500 hover:text-gray-800 transition-colors text-sm">
+        <button onClick={onBack} className="flex items-center gap-2 transition-colors text-sm"
+          style={{ color: "#94A3B8" }}
+          onMouseEnter={(e) => e.currentTarget.style.color = "#0F172A"}
+          onMouseLeave={(e) => e.currentTarget.style.color = "#94A3B8"}
+        >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
@@ -78,7 +116,6 @@ function ResultsView({ query, onSelect, onBack, onNewSearch }) {
           <SearchBar onSearch={onNewSearch} initialValue={query} />
         </div>
       </div>
-      <div className="text-gray-600 text-sm">Showing listings in <span className="font-semibold text-gray-900">{query}</span> — powered by Zillow</div>
       <ListingGrid query={query} onSelect={onSelect} />
     </div>
   );

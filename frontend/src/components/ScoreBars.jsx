@@ -1,43 +1,43 @@
 const AGENTS = [
-  { key: "price_score", label: "Price Momentum", icon: "📈" },
-  { key: "neighborhood_score", label: "Neighborhood Quality", icon: "🏘️" },
-  { key: "rental_yield", label: "Rental Yield", icon: "💰" },
-  { key: "forecast_score", label: "12-Month Forecast", icon: "🔮" },
-  { key: "aqi_score", label: "Air Quality (AQI)", icon: "🌬️" },
-  { key: "pollen_score", label: "Pollen Index", icon: "🌿" },
-  { key: "airbnb_score", label: "Airbnb STR Yield", icon: "🏡" },
-  { key: "climate_risk_score", label: "Climate Risk", icon: "🌊" },
+  { key: "price_score", label: "Price Momentum" },
+  { key: "neighborhood_score", label: "Neighborhood Quality" },
+  { key: "rental_yield", label: "Rental Yield" },
+  { key: "forecast_score", label: "12-Month Forecast" },
+  { key: "aqi_score", label: "Air Quality (AQI)" },
+  { key: "pollen_score", label: "Pollen Index" },
+  { key: "airbnb_score", label: "Airbnb STR Yield" },
+  { key: "climate_risk_score", label: "Climate Risk" },
 ];
 
 function barColor(v) {
-  if (v >= 70) return "bg-green-500";
-  if (v >= 40) return "bg-amber-500";
-  return "bg-red-500";
+  if (v >= 70) return "#10B981";
+  if (v >= 40) return "#F59E0B";
+  return "#EF4444";
 }
 
 function textColor(v) {
-  if (v >= 70) return "text-green-600";
-  if (v >= 40) return "text-amber-600";
-  return "text-red-600";
+  if (v >= 70) return "#065F46";
+  if (v >= 40) return "#92400E";
+  return "#991B1B";
 }
 
 export default function ScoreBars({ scores }) {
   return (
     <div className="space-y-3">
-      {AGENTS.map(({ key, label, icon }) => {
+      {AGENTS.map(({ key, label }) => {
         const value = Number(scores?.[key] ?? 0);
         return (
           <div key={key} className="flex items-center gap-3">
-            <span className="text-base w-6 flex-shrink-0">{icon}</span>
+            <div className="w-2 h-2 rounded-full shrink-0" style={{ background: "#E2E8F0" }} />
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between mb-1">
-                <span className="text-xs font-medium text-slate-600 truncate">{label}</span>
-                <span className={`text-xs font-bold ml-2 flex-shrink-0 ${textColor(value)}`}>{value.toFixed(0)}</span>
+                <span className="truncate" style={{ fontSize: 12, fontWeight: 500, color: "#475569" }}>{label}</span>
+                <span className="ml-2 flex-shrink-0" style={{ fontSize: 12, fontWeight: 700, color: textColor(value) }}>{value.toFixed(0)}</span>
               </div>
-              <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
+              <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "#F1F5F9" }}>
                 <div
-                  className={`h-2 rounded-full transition-all duration-700 ${barColor(value)}`}
-                  style={{ width: `${Math.max(2, value)}%` }}
+                  className="h-1.5 rounded-full transition-all duration-700"
+                  style={{ width: `${Math.max(2, value)}%`, background: barColor(value) }}
                 />
               </div>
             </div>

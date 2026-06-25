@@ -34,7 +34,7 @@ export default function PDFButton({ analysis, propertyDetails }) {
           ? `${analysis.air_quality_detail.aqi_value} (${analysis.air_quality_detail.category})`
           : "N/A",
         pm25_display: analysis.air_quality_detail?.pm25
-          ? `${analysis.air_quality_detail.pm25} μg/m³`
+          ? `${analysis.air_quality_detail.pm25} ug/m3`
           : "N/A",
         flood_zone: analysis.climate_details?.flood_zone || "N/A",
         wildfire_display: analysis.climate_details?.wildfire_risk_score
@@ -92,7 +92,14 @@ export default function PDFButton({ analysis, propertyDetails }) {
     <button
       onClick={handleDownload}
       disabled={loading || !analysis}
-      className="flex items-center gap-2 bg-slate-900 hover:bg-slate-700 disabled:opacity-50 text-white font-semibold text-sm px-5 py-2.5 rounded-full transition"
+      className="flex items-center gap-2 text-sm font-semibold transition-all duration-150"
+      style={{
+        background: "#0EA5E9", color: "white", border: "none",
+        borderRadius: 12, padding: "10px 20px", cursor: "pointer",
+        opacity: (loading || !analysis) ? 0.5 : 1,
+      }}
+      onMouseEnter={(e) => { if (!loading && analysis) e.currentTarget.style.background = "#0284C7"; }}
+      onMouseLeave={(e) => e.currentTarget.style.background = "#0EA5E9"}
     >
       {loading ? (
         <>
@@ -100,7 +107,12 @@ export default function PDFButton({ analysis, propertyDetails }) {
           Generating...
         </>
       ) : (
-        <>📄 Download PDF Report</>
+        <>
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          Download Report
+        </>
       )}
     </button>
   );

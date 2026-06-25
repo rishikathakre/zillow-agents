@@ -30,66 +30,84 @@ export default function Login({ onBack }) {
     }
   }
 
+  const inputStyle = {
+    width: "100%", borderRadius: 12, border: "1px solid #E2E8F0",
+    background: "#F8FAFC", padding: "12px 16px", fontSize: 13,
+    color: "#0F172A", outline: "none", transition: "border-color 150ms, box-shadow 150ms",
+  };
+
+  function onFocus(e) { e.target.style.borderColor = "#0EA5E9"; e.target.style.boxShadow = "0 0 0 3px rgba(14,165,233,0.1)"; }
+  function onBlur(e) { e.target.style.borderColor = "#E2E8F0"; e.target.style.boxShadow = "none"; }
+
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
-      {/* Minimal navbar */}
-      <nav className="flex items-center justify-between px-8 py-4 bg-white border-b border-slate-100">
+    <div className="min-h-screen flex flex-col" style={{ background: "#F8FAFC" }}>
+      {/* Navbar */}
+      <nav className="flex items-center justify-between px-8 py-4" style={{ borderBottom: "1px solid #E2E8F0" }}>
         <button onClick={onBack} className="flex items-center gap-2 group">
-          <div className="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center">
-            <span className="text-white font-black text-sm">P</span>
+          <div className="flex items-center justify-center" style={{
+            width: 32, height: 32, background: "#0EA5E9", borderRadius: 8,
+          }}>
+            <span style={{ color: "white", fontWeight: 700, fontSize: 14 }}>P</span>
           </div>
-          <span className="font-black text-slate-900 text-xl tracking-tight">PropIQ</span>
+          <span style={{ fontWeight: 800, color: "#0F172A", fontSize: 20, letterSpacing: "-0.02em" }}>PropIQ</span>
         </button>
-        <button onClick={onBack} className="text-sm text-slate-500 hover:text-slate-900 transition">
-          ← Back to home
+        <button onClick={onBack} style={{ fontSize: 13, color: "#94A3B8", background: "none", border: "none", cursor: "pointer" }}>
+          Back to home
         </button>
       </nav>
 
       <div className="flex-1 flex items-center justify-center px-5 py-12">
         <div className="w-full max-w-4xl grid md:grid-cols-[1.1fr_0.9fr] gap-8">
           {/* Left panel */}
-          <div className="bg-white border border-slate-200 rounded-3xl p-10 flex flex-col justify-center">
-            <div className="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center mb-6">
-              <span className="text-white font-black text-lg">P</span>
+          <div style={{
+            background: "#F0F9FF", border: "1px solid #BAE6FD",
+            borderRadius: 16, padding: 40,
+          }} className="flex flex-col justify-center">
+            <div className="flex items-center justify-center mb-6" style={{
+              width: 40, height: 40, background: "#0EA5E9", borderRadius: 12,
+            }}>
+              <span style={{ color: "white", fontWeight: 800, fontSize: 18 }}>P</span>
             </div>
-            <h1 className="text-3xl font-black text-slate-900 mb-3 leading-tight">
+            <h1 style={{ fontSize: 28, fontWeight: 800, color: "#0C4A6E", marginBottom: 12, lineHeight: 1.2, letterSpacing: "-0.02em" }}>
               Real Estate Intelligence.
               <br />
-              <span className="text-green-600">Unbiased.</span>
+              <span style={{ color: "#0EA5E9" }}>Unbiased.</span>
             </h1>
-            <p className="text-slate-500 text-sm leading-relaxed mb-8">
+            <p style={{ color: "#0369A1", fontSize: 13, lineHeight: 1.7, marginBottom: 32 }}>
               Sign in to analyze properties, compare markets, and download
-              professional investment reports — with air quality, pollen, and
+              professional investment reports -- with air quality, pollen, and
               flood data that Zillow removed.
             </p>
             <div className="space-y-4">
               {[
-                { icon: "🏠", title: "Search Properties", desc: "AI scores for any US ZIP code" },
-                { icon: "🌬️", title: "Environmental Data", desc: "AQI, pollen, flood, wildfire" },
-                { icon: "📄", title: "PDF Reports", desc: "4-page professional export" },
-              ].map(({ icon, title, desc }) => (
+                { title: "Search Properties", desc: "AI scores for any US ZIP code" },
+                { title: "Environmental Data", desc: "AQI, pollen, flood, wildfire" },
+                { title: "PDF Reports", desc: "4-page professional export" },
+              ].map(({ title, desc }) => (
                 <div key={title} className="flex items-start gap-3">
-                  <span className="text-xl mt-0.5">{icon}</span>
+                  <div className="w-1.5 h-1.5 rounded-full mt-2 shrink-0" style={{ background: "#0EA5E9" }} />
                   <div>
-                    <p className="text-sm font-semibold text-slate-900">{title}</p>
-                    <p className="text-xs text-slate-500">{desc}</p>
+                    <p style={{ fontSize: 13, fontWeight: 600, color: "#0C4A6E" }}>{title}</p>
+                    <p style={{ fontSize: 12, color: "#0369A1" }}>{desc}</p>
                   </div>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Right panel — form */}
-          <div className="bg-slate-900 rounded-3xl p-8 text-white">
-            <div className="flex gap-1 bg-slate-800 rounded-full p-1 mb-8">
+          {/* Right panel -- form */}
+          <div style={{ background: "white", border: "1px solid #E2E8F0", borderRadius: 16, padding: 32 }}>
+            <div className="flex gap-1 rounded-full p-1 mb-8" style={{ background: "#F1F5F9" }}>
               {["login", "signup"].map((m) => (
                 <button
                   key={m}
                   type="button"
                   onClick={() => { setMode(m); setError(""); }}
-                  className={`flex-1 rounded-full py-2 text-sm font-semibold transition ${
-                    mode === m ? "bg-white text-slate-900" : "text-slate-400 hover:text-white"
-                  }`}
+                  className="flex-1 rounded-full py-2 text-sm font-semibold transition"
+                  style={{
+                    background: mode === m ? "#0EA5E9" : "transparent",
+                    color: mode === m ? "white" : "#94A3B8",
+                  }}
                 >
                   {m === "signup" ? "Sign Up" : "Login"}
                 </button>
@@ -99,67 +117,65 @@ export default function Login({ onBack }) {
             <form onSubmit={handleSubmit} className="space-y-4">
               {mode === "signup" && (
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase tracking-wider">
+                  <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: "#94A3B8", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>
                     Full Name
                   </label>
-                  <input
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Jane Smith"
-                    className="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-sm text-white placeholder-slate-500 outline-none focus:border-green-500 transition"
-                  />
+                  <input value={name} onChange={(e) => setName(e.target.value)}
+                    placeholder="Jane Smith" style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
                 </div>
               )}
               <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase tracking-wider">
+                <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: "#94A3B8", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>
                   Email
                 </label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
-                  className="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-sm text-white placeholder-slate-500 outline-none focus:border-green-500 transition"
-                />
+                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@example.com" style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase tracking-wider">
+                <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: "#94A3B8", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>
                   Password
                 </label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-sm text-white placeholder-slate-500 outline-none focus:border-green-500 transition"
-                />
+                <input type="password" value={password} onChange={(e) => setPassword(e.target.value)}
+                  placeholder="--------" style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
               </div>
 
               {error && (
-                <p className="text-xs text-red-400 bg-red-400/10 rounded-lg px-3 py-2">{error}</p>
+                <p style={{ fontSize: 12, color: "#991B1B", background: "#FEF2F2", border: "1px solid #FCA5A5", borderRadius: 8, padding: "8px 12px" }}>{error}</p>
               )}
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full mt-2 rounded-full bg-green-500 hover:bg-green-400 disabled:opacity-60 px-5 py-3 text-sm font-bold text-white transition"
+              <button type="submit" disabled={loading}
+                className="w-full"
+                style={{
+                  marginTop: 8, borderRadius: 12, background: "#0EA5E9",
+                  padding: "12px 20px", fontSize: 13, fontWeight: 700,
+                  color: "white", border: "none", cursor: "pointer",
+                  opacity: loading ? 0.5 : 1, transition: "background 150ms",
+                  boxShadow: "0 1px 2px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.1)",
+                }}
+                onMouseEnter={(e) => { if (!loading) e.currentTarget.style.background = "#0284C7"; }}
+                onMouseLeave={(e) => e.currentTarget.style.background = "#0EA5E9"}
               >
                 {loading ? "Please wait..." : mode === "signup" ? "Create Account" : "Sign In"}
               </button>
 
               <div className="relative my-4">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-slate-700" />
+                  <div className="w-full" style={{ borderTop: "1px solid #E2E8F0" }} />
                 </div>
                 <div className="relative flex justify-center">
-                  <span className="bg-slate-900 px-3 text-xs text-slate-500">or</span>
+                  <span style={{ background: "white", padding: "0 12px", fontSize: 12, color: "#CBD5E1" }}>or</span>
                 </div>
               </div>
 
-              <button
-                type="button"
-                onClick={handleSubmit}
-                className="w-full rounded-full border border-slate-700 hover:border-slate-500 px-5 py-3 text-sm font-semibold text-slate-300 transition flex items-center justify-center gap-2"
+              <button type="button" onClick={handleSubmit}
+                className="w-full flex items-center justify-center gap-2"
+                style={{
+                  borderRadius: 12, border: "1px solid #E2E8F0", background: "white",
+                  padding: "12px 20px", fontSize: 13, fontWeight: 600,
+                  color: "#475569", cursor: "pointer", transition: "border-color 150ms, color 150ms",
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#0EA5E9"; e.currentTarget.style.color = "#0EA5E9"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#E2E8F0"; e.currentTarget.style.color = "#475569"; }}
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24">
                   <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -170,8 +186,8 @@ export default function Login({ onBack }) {
                 Continue with Google
               </button>
             </form>
-            <p className="mt-5 text-xs text-slate-500 text-center">
-              Mock auth — any email/password works for local development.
+            <p style={{ marginTop: 20, fontSize: 12, color: "#CBD5E1", textAlign: "center" }}>
+              Mock auth -- any email/password works for local development.
             </p>
           </div>
         </div>

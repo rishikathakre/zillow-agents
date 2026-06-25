@@ -5,7 +5,7 @@ import MapView from "./MapView";
 
 const FILTERS = [
   { key: "sale_type", label: "For Sale", options: ["For Sale", "For Rent", "Sold"] },
-  { key: "price", label: "Price", options: ["Any Price", "Under $300k", "$300k–$600k", "$600k–$1M", "$1M+"] },
+  { key: "price", label: "Price", options: ["Any Price", "Under $300k", "$300k-$600k", "$600k-$1M", "$1M+"] },
   { key: "beds", label: "Beds & Baths", options: ["Any", "1+ bd", "2+ bd", "3+ bd", "4+ bd"] },
   { key: "type", label: "Property Type", options: ["All Types", "Single Family", "Condo", "Townhouse", "Multi-Family"] },
   { key: "more", label: "More Filters", options: [] },
@@ -16,51 +16,67 @@ function FilterBar({ filters, onChange }) {
 
   return (
     <div className="flex items-center gap-2 flex-wrap">
-      {FILTERS.map(f => (
-        <div key={f.key} className="relative">
-          <button
-            onClick={() => setOpen(open === f.key ? null : f.key)}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-full border text-sm font-medium transition-colors ${
-              filters[f.key] && filters[f.key] !== f.options[0]
-                ? "bg-gray-900 text-white border-gray-900"
-                : "bg-white text-gray-700 border-gray-300 hover:border-gray-500"
-            }`}
-          >
-            {filters[f.key] || f.label}
-            <svg className="w-3.5 h-3.5 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
-          {open === f.key && f.options.length > 0 && (
-            <>
-              <div className="fixed inset-0 z-10" onClick={() => setOpen(null)} />
-              <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-xl z-20 min-w-40 py-1 overflow-hidden">
-                {f.options.map(opt => (
-                  <button key={opt} onClick={() => { onChange(f.key, opt); setOpen(null); }}
-                    className={`w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors ${filters[f.key] === opt ? "font-semibold text-blue-600" : "text-gray-700"}`}>
-                    {opt}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-      ))}
+      {FILTERS.map(f => {
+        const isActive = filters[f.key] && filters[f.key] !== f.options[0];
+        return (
+          <div key={f.key} className="relative">
+            <button
+              onClick={() => setOpen(open === f.key ? null : f.key)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg border text-sm font-medium transition-all duration-150"
+              style={{
+                background: isActive ? "rgba(14,165,233,0.08)" : "white",
+                color: isActive ? "#0EA5E9" : "#475569",
+                borderColor: isActive ? "rgba(14,165,233,0.3)" : "#E2E8F0",
+              }}
+            >
+              {filters[f.key] || f.label}
+              <svg className="w-3.5 h-3.5 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            {open === f.key && f.options.length > 0 && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setOpen(null)} />
+                <div style={{
+                  position: "absolute", top: "100%", left: 0, marginTop: 4,
+                  background: "white", border: "1px solid #E2E8F0", borderRadius: 12,
+                  boxShadow: "0 4px 16px rgba(0,0,0,0.08)", zIndex: 20, minWidth: 160,
+                  padding: "4px 0", overflow: "hidden",
+                }}>
+                  {f.options.map(opt => (
+                    <button key={opt} onClick={() => { onChange(f.key, opt); setOpen(null); }}
+                      className="w-full text-left px-4 py-2.5 text-sm transition-colors"
+                      style={{
+                        color: filters[f.key] === opt ? "#0EA5E9" : "#475569",
+                        fontWeight: filters[f.key] === opt ? 600 : 400,
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = "#F0F9FF"}
+                      onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+                    >
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
 
 function SkeletonGrid() {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
       {Array.from({ length: 8 }).map((_, i) => (
-        <div key={i} className="rounded-xl overflow-hidden bg-white animate-pulse shadow-sm border border-gray-100">
-          <div className="h-52 bg-gray-200" />
+        <div key={i} className="rounded-xl overflow-hidden animate-pulse" style={{ background: "white", border: "1px solid #E2E8F0" }}>
+          <div style={{ height: 180, background: "#E0F2FE" }} />
           <div className="p-4 space-y-2">
-            <div className="h-5 bg-gray-200 rounded w-2/3" />
-            <div className="h-3 bg-gray-100 rounded w-full" />
-            <div className="h-3 bg-gray-100 rounded w-3/4" />
-            <div className="h-3 bg-gray-100 rounded w-1/2 mt-3" />
+            <div className="h-5 rounded w-2/3" style={{ background: "#E2E8F0" }} />
+            <div className="h-3 rounded w-full" style={{ background: "#F1F5F9" }} />
+            <div className="h-3 rounded w-3/4" style={{ background: "#F1F5F9" }} />
+            <div className="h-3 rounded w-1/2 mt-3" style={{ background: "#F1F5F9" }} />
           </div>
         </div>
       ))}
@@ -72,8 +88,8 @@ export default function ListingGrid({ query, onSelect }) {
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [meta, setMeta] = useState({});           // city, state, source, rate_limited, message
-  const [viewMode, setViewMode] = useState("list"); // "list" | "map"
+  const [meta, setMeta] = useState({});
+  const [viewMode, setViewMode] = useState("list");
   const [filters, setFilters] = useState({});
   const [highlightId, setHighlightId] = useState(null);
 
@@ -105,17 +121,26 @@ export default function ListingGrid({ query, onSelect }) {
       <div className="flex-1">
         <FilterBar filters={filters} onChange={handleFilterChange} />
       </div>
-      {/* List / Map toggle */}
-      <div className="flex items-center bg-gray-100 rounded-full p-1 shrink-0">
+      <div className="flex items-center rounded-lg p-1 shrink-0" style={{ background: "#F1F5F9", border: "1px solid #E2E8F0" }}>
         <button onClick={() => setViewMode("list")}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${viewMode === "list" ? "bg-white shadow text-gray-900" : "text-gray-500 hover:text-gray-700"}`}>
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-150"
+          style={{
+            background: viewMode === "list" ? "white" : "transparent",
+            color: viewMode === "list" ? "#0F172A" : "#94A3B8",
+            boxShadow: viewMode === "list" ? "0 1px 2px rgba(0,0,0,0.05)" : "none",
+          }}>
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
           </svg>
           List
         </button>
         <button onClick={() => setViewMode("map")}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${viewMode === "map" ? "bg-white shadow text-gray-900" : "text-gray-500 hover:text-gray-700"}`}>
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-150"
+          style={{
+            background: viewMode === "map" ? "white" : "transparent",
+            color: viewMode === "map" ? "#0F172A" : "#94A3B8",
+            boxShadow: viewMode === "map" ? "0 1px 2px rgba(0,0,0,0.05)" : "none",
+          }}>
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
           </svg>
@@ -129,7 +154,7 @@ export default function ListingGrid({ query, onSelect }) {
 
   if (error) return (
     <>{topBar}
-    <div className="text-center py-20 text-gray-400">
+    <div className="text-center py-20" style={{ color: "#475569" }}>
       <p className="text-lg">{error}</p>
     </div></>
   );
@@ -138,33 +163,27 @@ export default function ListingGrid({ query, onSelect }) {
     <>
       {topBar}
       {meta.rateLimited ? (
-        /* Rate-limited: show an honest banner with the real location name */
         <div className="flex flex-col items-center justify-center py-16 gap-5">
-          <div className="w-full max-w-xl bg-amber-50 border border-amber-200 rounded-2xl p-6 text-center shadow-sm">
-            <div className="text-4xl mb-3">⏳</div>
-            <h3 className="font-bold text-amber-900 text-lg mb-1">
-              Real Zillow listings temporarily unavailable
+          <div className="w-full max-w-xl rounded-xl p-6 text-center" style={{
+            background: "#FFFBEB", border: "1px solid #FDE68A",
+          }}>
+            <h3 style={{ fontWeight: 700, color: "#92400E", fontSize: 18, marginBottom: 4 }}>
+              Real listings temporarily unavailable
             </h3>
-            <p className="text-amber-700 text-sm leading-relaxed">
-              {meta.message || "Zillow API rate limit reached. Your RapidAPI quota resets hourly — please try again in a few minutes."}
+            <p style={{ color: "#475569", fontSize: 14, lineHeight: 1.6 }}>
+              {meta.message || "API rate limit reached. Your quota resets hourly -- please try again in a few minutes."}
             </p>
             {meta.city && (
-              <p className="mt-3 text-amber-600 text-xs font-medium">
-                Searching: {meta.city}{meta.state ? `, ${meta.state}` : ""} · {query}
+              <p style={{ marginTop: 12, color: "#94A3B8", fontSize: 12, fontWeight: 500 }}>
+                Searching: {meta.city}{meta.state ? `, ${meta.state}` : ""} &middot; {query}
               </p>
             )}
           </div>
-          <div className="bg-blue-50 border border-blue-100 rounded-2xl p-5 max-w-xl w-full text-center">
-            <p className="text-blue-700 text-sm font-medium mb-1">Tip: Listings are cached for 24 hours</p>
-            <p className="text-blue-600 text-xs">
-              Once the rate limit clears, search again and results will be cached so you won't hit the limit again for 24 hours.
-            </p>
-          </div>
         </div>
       ) : (
-        <div className="text-center py-20 text-gray-400">
-          <p className="text-lg">No listings found for "{query}".</p>
-          <p className="text-sm mt-1">Try a different city or ZIP code.</p>
+        <div className="text-center py-20">
+          <p style={{ fontSize: 18, color: "#475569" }}>No listings found for &ldquo;{query}&rdquo;.</p>
+          <p style={{ fontSize: 14, marginTop: 4, color: "#94A3B8" }}>Try a different city or ZIP code.</p>
         </div>
       )}
     </>
@@ -176,7 +195,7 @@ export default function ListingGrid({ query, onSelect }) {
     return (
       <>
         {topBar}
-        <p className="text-gray-500 text-sm mb-3">{count} homes</p>
+        <p style={{ color: "#94A3B8", fontSize: 13, marginBottom: 12 }}>{count} properties in {meta.city ? `${meta.city}, ${meta.state}` : query}</p>
         <MapView listings={listings} onSelect={onSelect} highlightId={highlightId} onHighlight={setHighlightId} />
       </>
     );
@@ -185,8 +204,8 @@ export default function ListingGrid({ query, onSelect }) {
   return (
     <>
       {topBar}
-      <p className="text-gray-500 text-sm mb-3">{count} homes</p>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+      <p style={{ color: "#94A3B8", fontSize: 13, marginBottom: 12 }}>{count} properties in {meta.city ? `${meta.city}, ${meta.state}` : query}</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {listings.map(l => (
           <ListingCard key={l.id} listing={l} onClick={onSelect} highlighted={l.id === highlightId} />
         ))}

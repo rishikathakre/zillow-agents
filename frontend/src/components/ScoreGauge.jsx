@@ -1,13 +1,19 @@
 function gaugeColor(score) {
-  if (score >= 70) return "#16a34a";
-  if (score >= 40) return "#d97706";
-  return "#dc2626";
+  if (score >= 70) return "#10B981";
+  if (score >= 40) return "#F59E0B";
+  return "#EF4444";
 }
 
 function recLabel(score) {
   if (score >= 70) return "BUY";
   if (score >= 40) return "HOLD";
   return "PASS";
+}
+
+function recStyle(score) {
+  if (score >= 70) return { bg: "#ECFDF5", color: "#065F46", border: "#A7F3D0" };
+  if (score >= 40) return { bg: "#FFFBEB", color: "#92400E", border: "#FDE68A" };
+  return { bg: "#FEF2F2", color: "#991B1B", border: "#FCA5A5" };
 }
 
 export default function ScoreGauge({ score, size = 180 }) {
@@ -18,13 +24,12 @@ export default function ScoreGauge({ score, size = 180 }) {
   const progress = (Math.max(0, Math.min(100, score)) / 100) * circumference;
   const color = gaugeColor(score);
   const rec = recLabel(score);
-
-  const recColors = { BUY: "#16a34a", HOLD: "#d97706", PASS: "#dc2626" };
+  const rs = recStyle(score);
 
   return (
     <div className="flex flex-col items-center">
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-        <circle cx={cx} cy={cy} r={r} fill="none" stroke="#f1f5f9" strokeWidth={size * 0.08} />
+        <circle cx={cx} cy={cy} r={r} fill="none" stroke="#F1F5F9" strokeWidth={size * 0.08} />
         <circle
           cx={cx} cy={cy} r={r}
           fill="none"
@@ -37,7 +42,7 @@ export default function ScoreGauge({ score, size = 180 }) {
           style={{ transition: "stroke-dashoffset 0.7s ease" }}
         />
         <text
-          x={cx} y={cy - 8}
+          x={cx} y={cx - 8}
           textAnchor="middle" dominantBaseline="middle"
           fontSize={size * 0.21} fontWeight="900" fill={color}
           fontFamily="Inter, sans-serif"
@@ -47,15 +52,15 @@ export default function ScoreGauge({ score, size = 180 }) {
         <text
           x={cx} y={cy + size * 0.13}
           textAnchor="middle"
-          fontSize={size * 0.085} fill="#94a3b8"
+          fontSize={size * 0.085} fill="#94A3B8"
           fontFamily="Inter, sans-serif" fontWeight="600"
         >
           / 100
         </text>
       </svg>
       <span
-        className="mt-1 rounded-full px-5 py-1.5 text-sm font-bold text-white tracking-wide"
-        style={{ backgroundColor: recColors[rec] }}
+        className="mt-1 rounded-lg px-5 py-1.5 text-sm font-bold tracking-wide"
+        style={{ backgroundColor: rs.bg, color: rs.color, border: `1px solid ${rs.border}` }}
       >
         {rec}
       </span>

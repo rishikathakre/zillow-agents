@@ -1,14 +1,13 @@
-function scoreColor(score) {
-  if (score >= 75) return "bg-green-500";
-  if (score >= 55) return "bg-yellow-500";
-  return "bg-red-500";
+function aqiColor(aqi) {
+  if (aqi <= 50) return "#10B981";
+  if (aqi <= 100) return "#F59E0B";
+  return "#EF4444";
 }
 
-function aqiColor(aqi) {
-  if (aqi <= 50) return "bg-green-500";
-  if (aqi <= 100) return "bg-yellow-400";
-  if (aqi <= 150) return "bg-orange-500";
-  return "bg-red-500";
+function aqiTextColor(aqi) {
+  if (aqi <= 50) return "#065F46";
+  if (aqi <= 100) return "#92400E";
+  return "#991B1B";
 }
 
 function aqiLabel(aqi) {
@@ -25,31 +24,44 @@ export default function ListingCard({ listing, onClick, highlighted = false }) {
     neighborhood, source, days_on_market, price_reduced,
   } = listing;
 
-  // Use first real photo; fallback to a blank grey placeholder (no random stock images)
   const imgSrc = photo_url || (photo_urls && photo_urls[0]) || null;
 
   return (
     <div
       onClick={() => onClick(listing)}
-      className={`group cursor-pointer rounded-xl overflow-hidden bg-white transition-all duration-200 hover:-translate-y-1 hover:shadow-xl ${highlighted ? "ring-2 ring-blue-500 shadow-xl" : "shadow-sm border border-gray-100"}`}
+      className="group cursor-pointer overflow-hidden transition-all duration-200"
+      style={{
+        background: "white",
+        border: `1px solid ${highlighted ? "#BAE6FD" : "#E2E8F0"}`,
+        borderRadius: 12,
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.borderColor = "#BAE6FD";
+        e.currentTarget.style.boxShadow = "0 4px 16px rgba(14,165,233,0.12), 0 1px 4px rgba(0,0,0,0.04)";
+        e.currentTarget.style.transform = "translateY(-2px)";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.borderColor = highlighted ? "#BAE6FD" : "#E2E8F0";
+        e.currentTarget.style.boxShadow = "none";
+        e.currentTarget.style.transform = "translateY(0)";
+      }}
     >
       {/* Photo */}
-      <div className="relative h-52 overflow-hidden bg-gray-200">
+      <div className="relative overflow-hidden" style={{ height: 180, background: "#E0F2FE" }}>
         {imgSrc ? (
           <img
             src={imgSrc}
             alt={address}
-            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+            className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
             onError={e => {
               e.target.style.display = "none";
               e.target.nextSibling.style.display = "flex";
             }}
           />
         ) : null}
-        {/* No-photo placeholder */}
         <div
-          className="absolute inset-0 flex flex-col items-center justify-center text-gray-400 bg-gray-100"
-          style={{ display: imgSrc ? "none" : "flex" }}
+          className="absolute inset-0 flex flex-col items-center justify-center"
+          style={{ display: imgSrc ? "none" : "flex", color: "#94A3B8", background: "#E0F2FE" }}
         >
           <svg className="w-12 h-12 mb-2 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
@@ -59,57 +71,76 @@ export default function ListingCard({ listing, onClick, highlighted = false }) {
           <span className="text-xs">No photo available</span>
         </div>
 
-        {/* PropIQ score badge — top right */}
-        {propiq_score != null && (
-          <div className={`absolute top-2.5 right-2.5 ${scoreColor(propiq_score)} text-white text-xs font-bold px-2 py-1 rounded-lg shadow-md`}>
-            {propiq_score}/100
-          </div>
-        )}
-        {/* AQI badge — top left */}
+        {/* Gradient overlay */}
+        <div className="absolute inset-0 pointer-events-none"
+          style={{ background: "linear-gradient(to bottom, transparent 50%, rgba(12,26,46,0.5) 100%)" }} />
+
+        {/* AQI badge */}
         {aqi_value != null && (
-          <div className={`absolute top-2.5 left-2.5 ${aqiColor(aqi_value)} text-white text-xs font-bold px-2 py-1 rounded-lg shadow-md`}>
+          <div className="absolute top-3 left-3 flex items-center gap-1.5"
+            style={{
+              background: "rgba(255,255,255,0.92)", backdropFilter: "blur(6px)",
+              border: "1px solid rgba(0,0,0,0.05)", borderRadius: 20,
+              padding: "3px 8px", fontSize: 10, fontWeight: 600, color: aqiTextColor(aqi_value),
+            }}>
+            <span className="w-1.5 h-1.5 rounded-full" style={{ background: aqiColor(aqi_value) }} />
             AQI {aqiLabel(aqi_value)}
           </div>
         )}
-        {/* Property type + source */}
-        <div className="absolute bottom-0 left-0 right-0 flex items-end justify-between px-2.5 pb-2">
-          <div className="bg-black/60 text-white text-xs px-2 py-1 rounded-lg capitalize">
-            {property_type?.replace(/_/g, " ")}
-          </div>
-          {source === "zillow" && (
-            <div className="bg-blue-600/80 text-white text-xs px-2 py-1 rounded-lg flex items-center gap-1">
-              <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 2L2 9.5l1.5 1L12 4l8.5 6.5 1.5-1L12 2zM4 11.5V21h16v-9.5L12 6 4 11.5z"/>
-              </svg>
-              Zillow
-            </div>
-          )}
-        </div>
 
-        {/* Price reduced badge */}
+        {/* Score badge */}
+        {propiq_score != null && (
+          <div className="absolute top-3 right-3"
+            style={{
+              background: "#0EA5E9", border: "1px solid rgba(255,255,255,0.2)",
+              color: "white", borderRadius: 20, padding: "3px 8px",
+              fontSize: 10, fontWeight: 700,
+            }}>
+            {propiq_score}/100
+          </div>
+        )}
+
+        {/* Property type */}
+        {property_type && (
+          <div className="absolute bottom-3 left-3 capitalize"
+            style={{
+              background: "rgba(12,26,46,0.7)", backdropFilter: "blur(4px)",
+              color: "#E0F2FE", borderRadius: 5, padding: "2px 7px",
+              fontSize: 9, fontWeight: 500,
+            }}>
+            {property_type.replace(/_/g, " ")}
+          </div>
+        )}
+
         {price_reduced && (
-          <div className="absolute top-9 right-2.5 bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-md">
+          <div className="absolute top-10 right-3" style={{
+            background: "#EF4444", color: "white", fontSize: 10,
+            padding: "2px 6px", borderRadius: 4, fontWeight: 600,
+          }}>
             Price cut
           </div>
         )}
       </div>
 
       {/* Info */}
-      <div className="p-4">
-        <p className="font-bold text-gray-900 text-lg leading-tight">
+      <div style={{ padding: "12px 14px 14px" }}>
+        <p style={{ fontSize: 17, fontWeight: 700, color: "#0F172A", letterSpacing: "-0.02em", marginBottom: 2 }}>
           ${price?.toLocaleString()}
         </p>
-        <p className="text-gray-700 text-sm mt-0.5 truncate font-medium">{address}</p>
-        <p className="text-gray-400 text-xs truncate mt-0.5">
+        <p style={{ fontSize: 12, fontWeight: 500, color: "#0F172A", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginTop: 2 }}>
+          {address}
+        </p>
+        <p style={{ fontSize: 11, color: "#94A3B8", marginTop: 1 }}>
           {city}, {state} {zip_code}
         </p>
-        <div className="flex items-center gap-2 mt-2 text-gray-600 text-sm">
-          {beds > 0 && <><span className="font-medium">{beds} <span className="font-normal text-gray-400">bd</span></span><span className="text-gray-200">|</span></>}
-          {baths > 0 && <><span className="font-medium">{baths} <span className="font-normal text-gray-400">ba</span></span><span className="text-gray-200">|</span></>}
-          {sqft > 0 && <span className="font-medium">{sqft?.toLocaleString()} <span className="font-normal text-gray-400">sqft</span></span>}
+        <div style={{ height: 1, background: "#F1F5F9", margin: "8px 0" }} />
+        <div className="flex gap-3" style={{ fontSize: 11, color: "#64748B", fontWeight: 500 }}>
+          {beds > 0 && <span>{beds} bd</span>}
+          {baths > 0 && <span>{baths} ba</span>}
+          {sqft > 0 && <span>{sqft?.toLocaleString()} sqft</span>}
         </div>
         {days_on_market > 0 && (
-          <p className="text-gray-400 text-xs mt-1">{days_on_market} days on market</p>
+          <p style={{ color: "#CBD5E1", fontSize: 11, marginTop: 6 }}>{days_on_market} days on market</p>
         )}
       </div>
     </div>

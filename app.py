@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import os
 import math
 import random
 import re
@@ -38,9 +39,11 @@ from services import fema as svc_fema
 from services import bls as svc_bls
 from services import census as svc_census
 from services import rentcast as svc_rentcast
+from services import streetview as svc_streetview
 from services import zillow_csv as svc_zillow_csv
 
 HOUSE_PHOTOS_POOL = [
+    # Classic suburban homes (0-14)
     "https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=800",
     "https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=800",
     "https://images.unsplash.com/photo-1554995207-c18c203602cb?w=800",
@@ -48,21 +51,89 @@ HOUSE_PHOTOS_POOL = [
     "https://images.unsplash.com/photo-1576941089067-2de3c901e126?w=800",
     "https://images.unsplash.com/photo-1583608205776-bfd35f0d9f83?w=800",
     "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800",
+    "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800",
+    "https://images.unsplash.com/photo-1588880331179-bc9b93a8cb5e?w=800",
+    "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=800",
+    "https://images.unsplash.com/photo-1558036117-15d82a90b9b1?w=800",
+    "https://images.unsplash.com/photo-1549517045-bc93de075e53?w=800",
+    "https://images.unsplash.com/photo-1570652688161-80f3de7a2874?w=800",
+    "https://images.unsplash.com/photo-1510798831971-661eb04b3739?w=800",
+    "https://images.unsplash.com/photo-1481277542470-605612bd2d61?w=800",
+    # Modern and contemporary (15-29)
+    "https://images.unsplash.com/photo-1600047509807-ba8f99d2cdde?w=800",
+    "https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?w=800",
+    "https://images.unsplash.com/photo-1600585154526-990dced4db0d?w=800",
+    "https://images.unsplash.com/photo-1600047509782-20d39509f26d?w=800",
+    "https://images.unsplash.com/photo-1592595896551-12b371d546d5?w=800",
+    "https://images.unsplash.com/photo-1591474200742-8e512e6f98f8?w=800",
     "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800",
     "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800",
     "https://images.unsplash.com/photo-1605276374104-dee2a0ed3cd6?w=800",
     "https://images.unsplash.com/photo-1518780664697-55e3ad937233?w=800",
-    "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=800",
+    "https://images.unsplash.com/photo-1567496898669-ee935f5f647a?w=800",
+    "https://images.unsplash.com/photo-1523217582562-09d0def993a6?w=800",
+    "https://images.unsplash.com/photo-1484154218962-a197022b5858?w=800",
+    "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800",
+    "https://images.unsplash.com/photo-1583847268964-b28dc8f51f92?w=800",
+    # Luxury homes (30-44)
+    "https://images.unsplash.com/photo-1600121848594-d8644e57abab?w=800",
+    "https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800",
+    "https://images.unsplash.com/photo-1615529328331-f8917597711f?w=800",
+    "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800",
+    "https://images.unsplash.com/photo-1600566752355-35792bedcfea?w=800",
+    "https://images.unsplash.com/photo-1600563438938-a9a27216b4f5?w=800",
+    "https://images.unsplash.com/photo-1600210492493-0946911123ea?w=800",
+    "https://images.unsplash.com/photo-1600607687644-c7171b42498f?w=800",
+    "https://images.unsplash.com/photo-1613977257592-4871e5fcd7c4?w=800",
+    "https://images.unsplash.com/photo-1602343168117-bb8ffe3e2e9f?w=800",
+    "https://images.unsplash.com/photo-1613977257363-707ba9348227?w=800",
+    "https://images.unsplash.com/photo-1575517111839-3a3843ee7f5d?w=800",
+    "https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=800",
+    "https://images.unsplash.com/photo-1502005229762-cf1b2da7c5d6?w=800",
+    "https://images.unsplash.com/photo-1599427303058-f04cbcf4756f?w=800",
+    # Condos and townhouses (45-59)
+    "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=800",
+    "https://images.unsplash.com/photo-1460317442991-0ec209397118?w=800",
+    "https://images.unsplash.com/photo-1494526585095-c41746248156?w=800",
+    "https://images.unsplash.com/photo-1501183638710-841dd1904471?w=800",
+    "https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=800",
+    "https://images.unsplash.com/photo-1513584684374-8bab748fbf90?w=800",
+    "https://images.unsplash.com/photo-1598928506311-c55ded91a20c?w=800",
+    "https://images.unsplash.com/photo-1565182999561-18d7dc61c393?w=800",
+    "https://images.unsplash.com/photo-1555636222-cae831e670b3?w=800",
+    "https://images.unsplash.com/photo-1507149833265-60c372daea22?w=800",
+    "https://images.unsplash.com/photo-1533779283484-8ad4a1294a54?w=800",
+    "https://images.unsplash.com/photo-1475855581690-80accde3ae2b?w=800",
+    "https://images.unsplash.com/photo-1464146072230-91cabc968266?w=800",
+    "https://images.unsplash.com/photo-1449844908441-8829872d2607?w=800",
+    "https://images.unsplash.com/photo-1416331108676-a22ccb276e35?w=800",
 ]
 
-def _pick_photo(addr: str, lid: str = "", size: str = "800x500") -> str:
-    idx = abs(hash(addr + lid)) % len(HOUSE_PHOTOS_POOL)
-    return HOUSE_PHOTOS_POOL[idx]
 
-def _pick_photos(addr: str, lid: str = "", n: int = 5) -> list:
-    base = abs(hash(addr + lid)) % len(HOUSE_PHOTOS_POOL)
-    return [HOUSE_PHOTOS_POOL[(base + i) % len(HOUSE_PHOTOS_POOL)] 
-            for i in range(n)]
+def _pick_photo(addr: str, lid: str = "",
+                prop_type: str = "", price: float = 0) -> str:
+    seed = abs(hash(addr + lid))
+    if price > 1500000 or "Luxury" in prop_type:
+        idx = 30 + (seed % 15)
+    elif prop_type in ("Condo", "Co-Op", "Townhouse"):
+        idx = 45 + (seed % 15)
+    elif prop_type in ("Single Family",) and price > 800000:
+        idx = 15 + (seed % 15)
+    else:
+        idx = seed % 15
+    return HOUSE_PHOTOS_POOL[idx % len(HOUSE_PHOTOS_POOL)]
+
+
+def _pick_photos(addr: str, lid: str = "",
+                 prop_type: str = "", price: float = 0,
+                 n: int = 5) -> list:
+    seed = abs(hash(addr + lid))
+    base_photo = _pick_photo(addr, lid, prop_type, price)
+    base_idx = HOUSE_PHOTOS_POOL.index(base_photo)
+    return [
+        HOUSE_PHOTOS_POOL[(base_idx + i * 7) % len(HOUSE_PHOTOS_POOL)]
+        for i in range(n)
+    ]
 
 log = logging.getLogger(__name__)
 
@@ -165,6 +236,77 @@ STREET_PREFIXES = [
 ]
 PROPERTY_TYPES_LIST = ["Single Family", "Single Family", "Single Family", "Condo", "Condo", "Townhouse", "Multi-Family"]
 
+PROPERTY_TEMPLATES = {
+    "Single Family": {
+        "beds":  [3, 3, 4, 4, 4, 5],
+        "baths": [2.0, 2.0, 2.5, 3.0],
+        "sqft":  (1400, 3200),
+    },
+    "Condo": {
+        "beds":  [1, 1, 2, 2, 2, 3],
+        "baths": [1.0, 1.0, 1.5, 2.0],
+        "sqft":  (550, 1350),
+    },
+    "Townhouse": {
+        "beds":  [2, 3, 3, 4],
+        "baths": [1.5, 2.0, 2.5],
+        "sqft":  (1000, 2100),
+    },
+    "Multi-Family": {
+        "beds":  [4, 5, 6, 8],
+        "baths": [2.0, 3.0, 4.0],
+        "sqft":  (2000, 4000),
+    },
+    "Co-Op": {
+        "beds":  [1, 1, 2],
+        "baths": [1.0, 1.5],
+        "sqft":  (480, 1050),
+    },
+}
+
+PROPERTY_TYPE_WEIGHTS = [
+    ("Single Family", 40),
+    ("Condo",         28),
+    ("Townhouse",     18),
+    ("Multi-Family",   8),
+    ("Co-Op",          6),
+]
+
+
+def _pick_property_attrs(address: str, idx: int):
+    seed = abs(hash(address + str(idx)))
+
+    types   = [t[0] for t in PROPERTY_TYPE_WEIGHTS]
+    weights = [t[1] for t in PROPERTY_TYPE_WEIGHTS]
+    cumulative = []
+    total = 0
+    for w in weights:
+        total += w
+        cumulative.append(total)
+    r = seed % total
+    prop_type = types[0]
+    for i, c in enumerate(cumulative):
+        if r < c:
+            prop_type = types[i]
+            break
+
+    tmpl = PROPERTY_TEMPLATES[prop_type]
+
+    beds  = tmpl["beds"][seed % len(tmpl["beds"])]
+    baths = tmpl["baths"][(seed // 7) % len(tmpl["baths"])]
+    sqft_min, sqft_max = tmpl["sqft"]
+    sqft  = sqft_min + ((seed // 13) % (sqft_max - sqft_min))
+    sqft  = round(sqft / 50) * 50
+    year  = 1955 + ((seed // 17) % 68)
+
+    return {
+        "property_type": prop_type,
+        "beds":          beds,
+        "baths":         baths,
+        "sqft":          sqft,
+        "year_built":    year,
+    }
+
 CLIMATE_PROFILES: dict[str, dict] = {
     "northeast": {"temp_f": (28, 82), "humidity": (55, 75), "sunny_days": 224, "rain_in": 46, "snow_in": 28, "heat_days": 8},
     "mediterranean": {"temp_f": (48, 85), "humidity": (55, 70), "sunny_days": 284, "rain_in": 15, "snow_in": 0, "heat_days": 15},
@@ -262,7 +404,7 @@ def get_optional_user(authorization: str = Header(default="")) -> dict | None:
 app = FastAPI(title="PropIQ API", version="2.1.0")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:8080", "http://127.0.0.1:8080"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -342,38 +484,14 @@ def _get_graph():
     return _graph
 
 
-# ── Listing Photo Pool ────────────────────────────────────────────────────────
-HOUSE_PHOTOS = [
-    "https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=800&q=80",
-    "https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=800&q=80",
-    "https://images.unsplash.com/photo-1554995207-c18c203602cb?w=800&q=80",
-    "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&q=80",
-    "https://images.unsplash.com/photo-1576941089067-2de3c901e126?w=800&q=80",
-    "https://images.unsplash.com/photo-1583608205776-bfd35f0d9f83?w=800&q=80",
-    "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&q=80",
-    "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&q=80",
-    "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&q=80",
-    "https://images.unsplash.com/photo-1605276374104-dee2a0ed3cd6?w=800&q=80",
-    "https://images.unsplash.com/photo-1518780664697-55e3ad937233?w=800&q=80",
-    "https://images.unsplash.com/photo-1567496898669-ee935f5f647a?w=800&q=80",
-    "https://images.unsplash.com/photo-1523217582562-09d0def993a6?w=800&q=80",
-    "https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=800&q=80",
-    "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80",
-    "https://images.unsplash.com/photo-1588880331179-bc9b93a8cb5e?w=800&q=80",
-    "https://images.unsplash.com/photo-1599427303058-f04cbcf4756f?w=800&q=80",
-    "https://images.unsplash.com/photo-1502005229762-cf1b2da7c5d6?w=800&q=80",
-    "https://images.unsplash.com/photo-1613977257363-707ba9348227?w=800&q=80",
-    "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=800&q=80",
-]
-
-
 def _assign_photos(listing: dict) -> None:
-    """Assign photo URLs to a listing. Uses Unsplash pool as deterministic fallback.
-    Always assigns Unsplash photos — Street View requires API key authorization."""
-    seed = listing.get("address", "") + listing.get("id", "")
-    idx = hash(seed) % len(HOUSE_PHOTOS)
-    listing["photo_url"] = HOUSE_PHOTOS[idx]
-    listing["photo_urls"] = [HOUSE_PHOTOS[(idx + i) % len(HOUSE_PHOTOS)] for i in range(5)]
+    """Assign type-aware photo URLs from the 60-image pool."""
+    addr      = listing.get("address", "")
+    lid       = listing.get("id", "")
+    prop_type = listing.get("property_type", "")
+    price     = listing.get("price", 0)
+    listing["photo_url"]  = _pick_photo(addr, lid, prop_type, price)
+    listing["photo_urls"] = _pick_photos(addr, lid, prop_type, price, 5)
 
 
 def _rng(seed_str: str, salt: int = 0) -> random.Random:
@@ -941,16 +1059,17 @@ def _csv_price_pool(city: str, state: str, zip_code: str) -> list[dict]:
     median = _ZILLOW_ZIP_MEDIANS.get(zip_code, 0)
     if median > 0:
         rng2 = _rng(zip_code, salt=191)
-        return [
-            {
+        rows = []
+        for i in range(24):
+            attrs = _pick_property_attrs(zip_code + str(i), i)
+            rows.append({
                 "price":         max(50_000, int(median * rng2.uniform(0.65, 1.40))),
-                "sqft":          rng2.randint(800, 2800),
-                "beds":          rng2.randint(1, 4),
-                "baths":         rng2.choice([1.0, 1.5, 2.0, 2.5, 3.0]),
-                "property_type": rng2.choice(["Single Family", "Condo", "Townhouse"]),
-            }
-            for _ in range(24)
-        ]
+                "sqft":          attrs["sqft"],
+                "beds":          attrs["beds"],
+                "baths":         attrs["baths"],
+                "property_type": attrs["property_type"],
+            })
+        return rows
     return []
 
 
@@ -971,10 +1090,11 @@ def _make_illustrative_listing(rng: random.Random, idx: int, zip_code: str,
     else:
         low, high = zi["price_range"]
         price = rng.randint(low, high)
-        sqft  = rng.randint(800, 3200)
-        beds  = rng.randint(1, 5)
-        baths = rng.choice([1.0, 1.5, 2.0, 2.5, 3.0])
-        prop_type = PROPERTY_TYPES_LIST[rng.randint(0, len(PROPERTY_TYPES_LIST) - 1)]
+        attrs = _pick_property_attrs(full_address, idx)
+        sqft      = attrs["sqft"]
+        beds      = attrs["beds"]
+        baths     = attrs["baths"]
+        prop_type = attrs["property_type"]
 
     monthly_rent    = round(price * rng.uniform(0.004, 0.007) / 100) * 100
     estimated_value = round(price * rng.uniform(0.95, 1.10) / 1000) * 1000
@@ -1307,10 +1427,11 @@ def get_listings(query: str) -> dict[str, Any]:
         if raw_rc:
             for item in raw_rc:
                 listing = svc_rentcast.map_listing(item)
-                # Add Street View photos for real addresses
                 full_addr = listing.get("full_address", "")
-                listing["photo_url"]  = _pick_photos(full_addr)
-                listing["photo_urls"] = _pick_photos(full_addr, listing.get("id",""), 5)
+                rc_prop   = listing.get("property_type", "")
+                rc_price  = listing.get("price", 0)
+                listing["photo_url"]  = _pick_photo(full_addr, listing.get("id",""), rc_prop, rc_price)
+                listing["photo_urls"] = _pick_photos(full_addr, listing.get("id",""), rc_prop, rc_price, 5)
 
                 # Add PropIQ scores
                 scores = _mock_scores(zip_code + str(listing.get("id", "")))
@@ -1843,18 +1964,40 @@ def generate_pdf(payload: PdfRequest) -> StreamingResponse:
 @app.post("/api/settings/keys")
 @app.post("/api/account/keys")
 def save_keys(payload: EnvKeysRequest) -> dict[str, str]:
-    mapping = {
-        "OPENAI_API_KEY":      payload.openai_key,
-        "AIRNOW_API_KEY":      payload.airnow_key,
-        "OPENWEATHER_API_KEY": payload.openweather_key,
-        "GOOGLE_MAPS_API_KEY": payload.google_maps_key,
-        "WALKSCORE_API_KEY":   payload.walkscore_key,
-        "BLS_API_KEY":         payload.bls_key,
-    }
-    for env_name, value in mapping.items():
-        if value is not None:
-            set_key(str(ENV_PATH), env_name, value)
-    return {"status": "saved"}
+    try:
+        # Ensure .env file exists
+        if not ENV_PATH.exists():
+            ENV_PATH.touch()
+
+        mapping = {
+            "OPENAI_API_KEY":      payload.openai_key,
+            "AIRNOW_API_KEY":      payload.airnow_key,
+            "OPENWEATHER_API_KEY": payload.openweather_key,
+            "RENT_CAST_API_KEY":   payload.rentcast_key,
+            "GOOGLE_MAPS_API_KEY": payload.google_maps_key,
+            "WALKSCORE_API_KEY":   payload.walkscore_key,
+            "BLS_API_KEY":         payload.bls_key,
+        }
+        for env_name, value in mapping.items():
+            if value is not None and value.strip():
+                set_key(str(ENV_PATH), env_name, value.strip())
+
+        # Reload .env into os.environ so services pick up the new keys immediately
+        from dotenv import load_dotenv
+        load_dotenv(ENV_PATH, override=True)
+
+        # Reinitialize services that cache keys at module level
+        svc_streetview.GOOGLE_KEY = os.environ.get("GOOGLE_MAPS_API_KEY", "")
+        svc_rentcast.RENTCAST_KEY = (
+            os.environ.get("RENTCAST_API_KEY", "")
+            or os.environ.get("RENT_CAST_API_KEY", "")
+        )
+
+        return {"status": "saved"}
+    except Exception as e:
+        import traceback
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"Failed to save: {str(e)}")
 
 
 @app.get("/api/settings/keys")
@@ -1865,6 +2008,7 @@ def get_keys() -> dict[str, str]:
         "openai_key":      values.get("OPENAI_API_KEY", ""),
         "airnow_key":      values.get("AIRNOW_API_KEY", ""),
         "openweather_key": values.get("OPENWEATHER_API_KEY", ""),
+        "rentcast_key":    values.get("RENT_CAST_API_KEY", ""),
         "google_maps_key": values.get("GOOGLE_MAPS_API_KEY", ""),
         "walkscore_key":   values.get("WALKSCORE_API_KEY", ""),
         "bls_key":         values.get("BLS_API_KEY", ""),

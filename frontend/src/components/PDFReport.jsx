@@ -24,7 +24,7 @@ export default function PDFReport({ record }) {
 
   return (
     <button type="button" onClick={handleDownload} className="rounded-full bg-slate-900 px-5 py-3 text-sm font-semibold text-white">
-      Download PDF Report
+      Download Detailed Analysis Report
     </button>
   );
 }

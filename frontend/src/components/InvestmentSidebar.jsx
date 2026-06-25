@@ -2,12 +2,14 @@ import { useState } from "react";
 import { useAuth } from "../context/AuthContext.jsx";
 import api from "../api/client";
 
-function ScoreArc({ score }) {
+function useScoreArc(score) {
   const r = 52, c = 2 * Math.PI * r, dash = (score / 100) * c;
-  const color = score >= 75 ? "#22c55e" : score >= 55 ? "#eab308" : "#ef4444";
-  const verdict = score >= 75 ? { t: "BUY", bg: "bg-green-100", text: "text-green-700" }
-    : score >= 55 ? { t: "HOLD", bg: "bg-yellow-100", text: "text-yellow-700" }
-    : { t: "PASS", bg: "bg-red-100", text: "text-red-700" };
+  const color = score >= 75 ? "#10B981" : score >= 55 ? "#F59E0B" : "#EF4444";
+  const verdict = score >= 75
+    ? { t: "BUY",  bg: "#ECFDF5", color: "#065F46", border: "#A7F3D0", sub: "#059669" }
+    : score >= 55
+    ? { t: "HOLD", bg: "#FFFBEB", color: "#92400E", border: "#FDE68A", sub: "#D97706" }
+    : { t: "PASS", bg: "#FEF2F2", color: "#991B1B", border: "#FCA5A5", sub: "#EF4444" };
   return { color, dash, c, r, verdict };
 }
 
@@ -17,7 +19,7 @@ export default function InvestmentSidebar({ listing, analysis }) {
 
   if (!listing) return null;
   const score = analysis?.weighted_total ?? listing.propiq_score ?? 50;
-  const { color, dash, c, r, verdict } = ScoreArc({ score });
+  const { color, dash, c, r, verdict } = useScoreArc(score);
 
   async function downloadPdf() {
     if (!analysis) return;
@@ -46,7 +48,7 @@ export default function InvestmentSidebar({ listing, analysis }) {
           ltr_yield_display: mt.ltr_yield_pct ? `${mt.ltr_yield_pct}%` : "N/A",
           estimated_return_display: mt.estimated_annual_return_pct ? `${mt.estimated_annual_return_pct}%` : "N/A",
           aqi_display: aq.aqi_value ? `${aq.aqi_value} (${aq.category ?? ""})` : "N/A",
-          pm25_display: aq.pm25 ? `${aq.pm25} µg/m³` : "N/A",
+          pm25_display: aq.pm25 ? `${aq.pm25} ug/m3` : "N/A",
           flood_zone: cd.flood_zone ?? "N/A",
           wildfire_display: cd.wildfire_risk_score != null ? `${cd.wildfire_risk_score}/100` : "N/A",
           tree_pollen: pc.tree_level ?? "N/A",
@@ -84,98 +86,130 @@ export default function InvestmentSidebar({ listing, analysis }) {
     }
   }
 
-  const metrics = analysis?.scores ?? {};
+  const metrics = analysis?.scores ?? listing?.scores ?? {};
   const rentYield = analysis?.rental_yield ?? (listing.monthly_rent && listing.price ? ((listing.monthly_rent * 12) / listing.price * 100).toFixed(1) : null);
 
   return (
     <div className="space-y-4">
       {/* Score card */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 text-center">
+      <div style={{ background: "white", border: "1px solid #E2E8F0", borderRadius: 12, padding: 20, textAlign: "center", boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
         <svg viewBox="0 0 120 120" className="w-28 h-28 mx-auto">
-          <circle cx="60" cy="60" r={r} fill="none" stroke="#f3f4f6" strokeWidth="12" />
+          <circle cx="60" cy="60" r={r} fill="none" stroke="#F1F5F9" strokeWidth="12" />
           <circle cx="60" cy="60" r={r} fill="none" stroke={color} strokeWidth="12"
-            strokeDasharray={`${dash} ${c}`} strokeLinecap="round" transform="rotate(-90 60 60)" />
-          <text x="60" y="56" textAnchor="middle" fontSize="22" fontWeight="bold" fill="#111827">{score}</text>
-          <text x="60" y="72" textAnchor="middle" fontSize="10" fill="#6b7280">PropIQ Score</text>
+            strokeDasharray={`${dash} ${c}`} strokeLinecap="round" transform="rotate(-90 60 60)"
+            style={{ transition: "stroke-dasharray 0.6s ease" }} />
+          <text x="60" y="56" textAnchor="middle" fontSize="22" fontWeight="bold" fill={color}>{score}</text>
+          <text x="60" y="72" textAnchor="middle" fontSize="10" fill="#94A3B8">PropIQ Score</text>
         </svg>
-        <div className={`inline-block mt-2 px-4 py-1.5 rounded-full text-sm font-extrabold tracking-wide ${verdict.bg} ${verdict.text}`}>
-          {verdict.t}
+
+        {/* Recommendation box */}
+        <div style={{
+          marginTop: 16, padding: 16, borderRadius: 12,
+          background: verdict.bg, border: `1px solid ${verdict.border}`,
+        }}>
+          <div style={{ fontSize: 18, fontWeight: 800, color: verdict.color, letterSpacing: "-0.02em" }}>{verdict.t}</div>
+          {analysis?.summary && (
+            <p style={{ fontSize: 11, color: verdict.sub, marginTop: 4, lineHeight: 1.5 }}>{analysis.summary}</p>
+          )}
         </div>
-        {analysis?.summary && (
-          <p className="text-gray-500 text-xs mt-3 leading-relaxed text-left">{analysis.summary}</p>
-        )}
       </div>
 
       {/* Price summary */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-3">
-        <h4 className="font-bold text-gray-900">Price Summary</h4>
-        <div className="text-3xl font-bold text-gray-900">${listing.price?.toLocaleString()}</div>
-        <div className="space-y-1.5 text-sm">
-          <div className="flex justify-between text-gray-600">
-            <span>Price/sqft</span>
-            <span className="font-medium">${listing.sqft ? Math.round(listing.price / listing.sqft) : "—"}</span>
-          </div>
+      <div style={{ background: "white", border: "1px solid #E2E8F0", borderRadius: 12, padding: 20, boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
+        <h4 style={{ fontWeight: 700, color: "#0F172A", fontSize: 13, marginBottom: 12 }}>Price Summary</h4>
+        <div style={{ fontSize: 26, fontWeight: 800, color: "#0F172A", letterSpacing: "-0.03em" }}>${listing.price?.toLocaleString()}</div>
+        <div style={{ fontSize: 12, color: "#94A3B8", marginTop: 4 }}>${listing.sqft ? Math.round(listing.price / listing.sqft) : "--"}/sqft</div>
+
+        <div style={{ borderTop: "1px solid #F1F5F9", marginTop: 16, paddingTop: 16 }} className="space-y-2.5">
           {listing.monthly_rent && (
-            <div className="flex justify-between text-gray-600">
-              <span>Est. Monthly Rent</span>
-              <span className="font-medium">${listing.monthly_rent?.toLocaleString()}</span>
+            <div className="flex justify-between" style={{ fontSize: 12 }}>
+              <span style={{ color: "#94A3B8" }}>Est. Monthly Rent</span>
+              <span style={{ fontWeight: 600, color: "#0F172A" }}>${listing.monthly_rent?.toLocaleString()}</span>
             </div>
           )}
           {rentYield && (
-            <div className="flex justify-between text-gray-600">
-              <span>Rental Yield</span>
-              <span className="font-medium text-green-600">{rentYield}%</span>
+            <div className="flex justify-between" style={{ fontSize: 12 }}>
+              <span style={{ color: "#94A3B8" }}>Rental Yield</span>
+              <span style={{ fontWeight: 600, color: "#10B981" }}>{rentYield}%</span>
             </div>
           )}
         </div>
       </div>
 
-      {/* Investment stats */}
+      {/* Score breakdown */}
       {Object.keys(metrics).length > 0 && (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-          <h4 className="font-bold text-gray-900 mb-3">Score Breakdown</h4>
-          <div className="space-y-2">
-            {Object.entries(metrics).map(([k, v]) => (
-              <div key={k}>
-                <div className="flex justify-between text-xs text-gray-500 mb-0.5">
-                  <span className="capitalize">{k.replace(/_/g, " ")}</span>
-                  <span>{v === null ? "N/A" : `${v}/100`}</span>
+        <div style={{ background: "white", border: "1px solid #E2E8F0", borderRadius: 12, padding: 20, boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
+          <div className="flex items-center justify-between mb-3">
+            <h4 style={{ fontWeight: 700, color: "#0F172A", fontSize: 13 }}>Score Breakdown</h4>
+            {!analysis && (
+              <span className="flex items-center gap-1.5" style={{
+                fontSize: 11, color: "#0369A1", background: "#F0F9FF",
+                padding: "2px 8px", borderRadius: 20, border: "1px solid #BAE6FD",
+              }}>
+                <span className="w-1.5 h-1.5 rounded-full pulse-dot inline-block" style={{ background: "#0EA5E9" }} />
+                Analyzing...
+              </span>
+            )}
+          </div>
+          <div className="space-y-2.5">
+            {Object.entries(metrics).map(([k, v]) => {
+              const barColor = v >= 70 ? "#10B981" : v >= 40 ? "#F59E0B" : "#EF4444";
+              return (
+                <div key={k}>
+                  <div className="flex justify-between mb-1" style={{ fontSize: 12 }}>
+                    <span className="capitalize" style={{ color: "#475569" }}>{k.replace(/_/g, " ")}</span>
+                    <span className={!analysis ? "animate-pulse" : ""} style={{ fontWeight: 600, color: "#0F172A" }}>{v === null ? "N/A" : `${v}/100`}</span>
+                  </div>
+                  <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "#F1F5F9" }}>
+                    <div className="h-full rounded-full transition-all duration-500"
+                      style={{ width: v ? `${v}%` : "0%", background: analysis ? barColor : "#0EA5E9" }} />
+                  </div>
                 </div>
-                <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                  <div className="h-full rounded-full bg-blue-500" style={{ width: v ? `${v}%` : "0%" }} />
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
 
       {/* Current conditions */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-2 text-sm">
-        <h4 className="font-bold text-gray-900">Current Conditions</h4>
-        {[
-          { label: "AQI", value: listing.aqi_value ? `${listing.aqi_value} (${listing.aqi_value <= 50 ? "Good" : listing.aqi_value <= 100 ? "Moderate" : "Unhealthy"})` : "—" },
-          { label: "Pollen", value: listing.pollen_level ? `${listing.pollen_level} avg` : "—" },
-          { label: "Climate Risk", value: listing.climate_score ? `${listing.climate_score}/100` : "—" },
-        ].map(r => (
-          <div key={r.label} className="flex justify-between text-gray-600">
-            <span>{r.label}</span>
-            <span className="font-medium">{r.value}</span>
-          </div>
-        ))}
+      <div style={{ background: "white", border: "1px solid #E2E8F0", borderRadius: 12, padding: 20, boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
+        <h4 style={{ fontWeight: 700, color: "#0F172A", fontSize: 13, marginBottom: 12 }}>Current Conditions</h4>
+        <div className="flex gap-2">
+          {[
+            { label: "AQI", value: listing.aqi_value ? `${listing.aqi_value}` : "--" },
+            { label: "Pollen", value: listing.pollen_level ? `${listing.pollen_level}` : "--" },
+            { label: "Climate", value: listing.climate_score ? `${listing.climate_score}` : "--" },
+          ].map(r => (
+            <div key={r.label} style={{
+              background: "#F0F9FF", border: "1px solid #BAE6FD", borderRadius: 8,
+              padding: "8px 12px", fontSize: 11, color: "#0369A1", fontWeight: 500, flex: 1, textAlign: "center",
+            }}>
+              <div style={{ fontSize: 10, color: "#94A3B8", marginBottom: 2 }}>{r.label}</div>
+              {r.value}
+            </div>
+          ))}
+        </div>
       </div>
 
-      {/* PDF button */}
+      {/* PDF download */}
       {analysis && (
         <button
           onClick={downloadPdf}
           disabled={downloading}
-          className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-semibold py-3 rounded-2xl flex items-center justify-center gap-2 transition-colors"
+          className="w-full flex items-center justify-center gap-2 transition-all duration-150"
+          style={{
+            background: "#0EA5E9", color: "white", border: "none", borderRadius: 9,
+            padding: "10px 0", fontSize: 13, fontWeight: 600, cursor: "pointer",
+            boxShadow: "0 1px 2px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.1)",
+            opacity: downloading ? 0.5 : 1,
+          }}
+          onMouseEnter={(e) => { if (!downloading) e.currentTarget.style.background = "#0284C7"; }}
+          onMouseLeave={(e) => e.currentTarget.style.background = "#0EA5E9"}
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
-          {downloading ? "Generating…" : "Download PDF Report"}
+          {downloading ? "Generating..." : "Download Analysis Report"}
         </button>
       )}
     </div>

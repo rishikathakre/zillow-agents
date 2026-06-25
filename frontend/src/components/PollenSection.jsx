@@ -1,40 +1,36 @@
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
-function levelColor(v) {
-  if (v <= 2) return "bg-green-200 text-green-800";
-  if (v <= 4) return "bg-yellow-200 text-yellow-800";
-  if (v <= 6) return "bg-orange-200 text-orange-800";
-  if (v <= 8) return "bg-red-200 text-red-800";
-  return "bg-purple-200 text-purple-800";
+function levelMeta(v) {
+  if (v <= 2) return { color: "#10B981", label: "Low" };
+  if (v <= 4) return { color: "#F59E0B", label: "Moderate" };
+  if (v <= 6) return { color: "#f97316", label: "High" };
+  if (v <= 8) return { color: "#EF4444", label: "Very High" };
+  return { color: "#7c3aed", label: "Extreme" };
 }
 
-function levelLabel(v) {
-  if (v <= 2) return "Low";
-  if (v <= 4) return "Moderate";
-  if (v <= 6) return "High";
-  if (v <= 8) return "Very High";
-  return "Extreme";
-}
-
-function PollenType({ label, icon, value, monthly }) {
+function PollenType({ label, value, monthly }) {
+  const meta = levelMeta(Math.round(value / 10));
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="text-xl">{icon}</span>
-          <span className="font-semibold text-gray-800">{label}</span>
-        </div>
-        <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${levelColor(Math.round(value / 10))}`}>
-          {levelLabel(Math.round(value / 10))} ({value})
+        <span style={{ fontWeight: 600, color: "#0F172A", fontSize: 13 }}>{label}</span>
+        <span style={{
+          padding: "2px 8px", borderRadius: 8, fontSize: 11, fontWeight: 600,
+          color: meta.color,
+        }}>
+          {meta.label} ({value})
         </span>
       </div>
       <div className="grid grid-cols-12 gap-0.5">
-        {(monthly || []).map((v, i) => (
-          <div key={i} className="flex flex-col items-center gap-0.5">
-            <div className={`w-full h-5 rounded ${levelColor(Math.round(v / 10))}`} title={`${MONTHS[i]}: ${v}`} />
-            <span className="text-gray-400 text-[9px]">{MONTHS[i][0]}</span>
-          </div>
-        ))}
+        {(monthly || []).map((v, i) => {
+          const m = levelMeta(Math.round(v / 10));
+          return (
+            <div key={i} className="flex flex-col items-center gap-0.5">
+              <div className="w-full h-5 rounded" style={{ background: `${m.color}25` }} title={`${MONTHS[i]}: ${v}`} />
+              <span style={{ color: "#CBD5E1", fontSize: 9 }}>{MONTHS[i][0]}</span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -46,11 +42,27 @@ export default function PollenSection({ data }) {
 
   return (
     <div className="space-y-5">
-      <h3 className="text-lg font-bold text-gray-900">Pollen Forecast</h3>
-      <PollenType label="Tree Pollen" icon="🌳" value={tree} monthly={monthly_tree} />
-      <PollenType label="Grass Pollen" icon="🌿" value={grass} monthly={monthly_grass} />
-      <PollenType label="Weed Pollen" icon="🌾" value={weed} monthly={monthly_weed} />
-      <p className="text-xs text-gray-400">Pollen index 0–120. Monthly heatmap shows seasonal variation across the year.</p>
+      <h3 style={{ fontSize: 13, fontWeight: 700, color: "#0F172A" }}>Pollen Forecast</h3>
+      <div className="grid grid-cols-3 gap-3">
+        {[
+          { label: "Tree", value: tree, level: levelMeta(Math.round(tree / 10)) },
+          { label: "Grass", value: grass, level: levelMeta(Math.round(grass / 10)) },
+          { label: "Weed", value: weed, level: levelMeta(Math.round(weed / 10)) },
+        ].map(p => (
+          <div key={p.label} style={{
+            background: "#F0F9FF", border: "1px solid #BAE6FD",
+            borderRadius: 12, padding: 16, textAlign: "center",
+          }}>
+            <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 600, color: "#0369A1" }}>{p.label}</div>
+            <div style={{ fontSize: 20, fontWeight: 700, color: "#0C4A6E", marginTop: 8 }}>{p.value}</div>
+            <div style={{ fontSize: 10, fontWeight: 600, color: p.level.color, marginTop: 4 }}>{p.level.label}</div>
+          </div>
+        ))}
+      </div>
+      <PollenType label="Tree Pollen" value={tree} monthly={monthly_tree} />
+      <PollenType label="Grass Pollen" value={grass} monthly={monthly_grass} />
+      <PollenType label="Weed Pollen" value={weed} monthly={monthly_weed} />
+      <p style={{ fontSize: 12, color: "#CBD5E1" }}>Pollen index 0-120. Monthly heatmap shows seasonal variation across the year.</p>
     </div>
   );
 }

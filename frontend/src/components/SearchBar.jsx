@@ -55,8 +55,28 @@ export default function SearchBar({ onSearch, initialValue = "" }) {
 
   return (
     <div ref={wrapRef} className="relative w-full max-w-2xl mx-auto">
-      <form onSubmit={submit} className="flex items-center gap-2 bg-white border-2 border-gray-200 rounded-2xl px-4 py-3 shadow-lg focus-within:border-blue-500 transition-colors">
-        <svg className="w-5 h-5 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <form
+        onSubmit={submit}
+        className="flex items-center gap-2 transition-all duration-150"
+        style={{
+          background: "white",
+          border: "1px solid #BAE6FD",
+          borderRadius: 10,
+          padding: "4px 4px 4px 14px",
+          boxShadow: "0 1px 3px rgba(14,165,233,0.08), 0 1px 2px rgba(0,0,0,0.04)",
+        }}
+        onFocus={(e) => {
+          e.currentTarget.style.borderColor = "#0EA5E9";
+          e.currentTarget.style.boxShadow = "0 0 0 3px rgba(14,165,233,0.12)";
+        }}
+        onBlur={(e) => {
+          if (!e.currentTarget.contains(e.relatedTarget)) {
+            e.currentTarget.style.borderColor = "#BAE6FD";
+            e.currentTarget.style.boxShadow = "0 1px 3px rgba(14,165,233,0.08), 0 1px 2px rgba(0,0,0,0.04)";
+          }
+        }}
+      >
+        <svg className="w-5 h-5 shrink-0" style={{ color: "#94A3B8" }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
         </svg>
         <input
@@ -66,28 +86,53 @@ export default function SearchBar({ onSearch, initialValue = "" }) {
           onChange={handleChange}
           onFocus={handleFocus}
           placeholder="Search city, neighborhood, or ZIP code..."
-          className="flex-1 outline-none text-gray-800 text-base placeholder-gray-400 bg-transparent"
+          className="flex-1 outline-none text-sm px-2 py-3"
+          style={{ color: "#0F172A", background: "transparent" }}
         />
         {query && (
-          <button type="button" onClick={() => { setQuery(""); setOpen(false); inputRef.current?.focus(); }} className="text-gray-400 hover:text-gray-600">
+          <button type="button" onClick={() => { setQuery(""); setOpen(false); inputRef.current?.focus(); }}
+            style={{ color: "#94A3B8" }}
+            onMouseEnter={(e) => e.currentTarget.style.color = "#0F172A"}
+            onMouseLeave={(e) => e.currentTarget.style.color = "#94A3B8"}
+          >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         )}
-        <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-xl text-sm font-semibold transition-colors">
+        <button type="submit" style={{
+          background: "#0EA5E9", color: "white", border: "none",
+          borderRadius: 8, padding: "8px 18px", fontSize: 13,
+          fontWeight: 600, cursor: "pointer", transition: "background 150ms",
+        }}
+        onMouseEnter={(e) => e.currentTarget.style.background = "#0284C7"}
+        onMouseLeave={(e) => e.currentTarget.style.background = "#0EA5E9"}
+        >
           Search
         </button>
       </form>
 
       {open && filtered.length > 0 && (
-        <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-2xl shadow-xl z-50 overflow-hidden">
-          <div className="px-4 py-2 text-xs text-gray-400 font-semibold uppercase tracking-wide border-b border-gray-100">
+        <div style={{
+          position: "absolute", top: "100%", left: 0, right: 0, marginTop: 8,
+          background: "white", border: "1px solid #E2E8F0", borderRadius: 12,
+          boxShadow: "0 4px 16px rgba(0,0,0,0.08)", zIndex: 50, overflow: "hidden",
+        }}>
+          <div style={{
+            padding: "8px 16px", fontSize: 11, color: "#94A3B8",
+            fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em",
+            borderBottom: "1px solid #E2E8F0",
+          }}>
             {query.trim() ? "Suggestions" : "Popular cities"}
           </div>
           {filtered.map(s => (
-            <button key={s} onMouseDown={() => pick(s)} className="w-full text-left px-4 py-2.5 hover:bg-blue-50 flex items-center gap-3 text-gray-700 text-sm transition-colors">
-              <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <button key={s} onMouseDown={() => pick(s)}
+              className="w-full text-left flex items-center gap-3 transition-colors"
+              style={{ padding: "10px 16px", fontSize: 13, color: "#475569" }}
+              onMouseEnter={(e) => e.currentTarget.style.background = "#F0F9FF"}
+              onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+            >
+              <svg className="w-4 h-4 shrink-0" style={{ color: "#94A3B8" }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>

@@ -1,74 +1,84 @@
 import { useEffect, useRef, useState } from "react";
 
 const AGENTS = [
-  { key: "price",        name: "Price Agent",        icon: "💰", source: "Zillow Research" },
-  { key: "neighborhood", name: "Neighborhood Agent",  icon: "🏘️", source: "Google Places & Census" },
-  { key: "rental",       name: "Rental Agent",        icon: "🏠", source: "Zillow Rent Index" },
-  { key: "forecast",     name: "Forecast Agent",      icon: "📈", source: "ML Regression Model" },
-  { key: "aqi",          name: "AQI Agent",           icon: "🌬️", source: "EPA AirNow" },
-  { key: "pollen",       name: "Pollen Agent",        icon: "🌿", source: "Google Pollen API" },
-  { key: "climate",      name: "Climate Agent",       icon: "🌊", source: "FEMA & NOAA" },
-  { key: "airbnb",       name: "Airbnb Agent",        icon: "🛏️", source: "STR vs LTR Analysis" },
-  { key: "coordinator",  name: "Coordinator (GPT)",   icon: "🤖", source: "GPT-4o-mini" },
+  { key: "price",        name: "Price Agent",        source: "Zillow Research" },
+  { key: "neighborhood", name: "Neighborhood Agent",  source: "Google Places & Census" },
+  { key: "rental",       name: "Rental Agent",        source: "Zillow Rent Index" },
+  { key: "forecast",     name: "Forecast Agent",      source: "ML Regression Model" },
+  { key: "aqi",          name: "AQI Agent",           source: "EPA AirNow" },
+  { key: "pollen",       name: "Pollen Agent",        source: "Google Pollen API" },
+  { key: "climate",      name: "Climate Agent",       source: "FEMA & NOAA" },
+  { key: "airbnb",       name: "Airbnb Agent",        source: "STR vs LTR Analysis" },
+  { key: "coordinator",  name: "Coordinator (GPT)",   source: "GPT-4o-mini" },
 ];
 
 function ScoreBadge({ score }) {
   if (score === null || score === undefined) return null;
-  const color = score >= 70 ? "bg-green-100 text-green-700" : score >= 40 ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-700";
+  const style = score >= 70
+    ? { bg: "#ECFDF5", color: "#065F46", border: "#A7F3D0" }
+    : score >= 40
+    ? { bg: "#FFFBEB", color: "#92400E", border: "#FDE68A" }
+    : { bg: "#FEF2F2", color: "#991B1B", border: "#FCA5A5" };
   return (
-    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${color}`}>{score}/100</span>
+    <span style={{
+      background: style.bg, color: style.color,
+      border: `1px solid ${style.border}`, borderRadius: 6,
+      padding: "2px 8px", fontSize: 11, fontWeight: 600,
+    }}>
+      {score}/100
+    </span>
   );
 }
 
 function AgentRow({ agentDef, state, timer }) {
-  const { key, name, icon, source } = agentDef;
+  const { name, source } = agentDef;
   const status = state?.status ?? "waiting";
 
   if (status === "waiting") {
     return (
-      <div className="flex items-center gap-3 py-2 opacity-50">
-        <div className="w-2 h-2 rounded-full bg-gray-300 shrink-0" />
-        <span className="text-lg w-7 text-center">{icon}</span>
+      <div className="flex items-center gap-3 px-5 py-3 opacity-50">
+        <div className="w-2 h-2 rounded-full shrink-0" style={{ background: "#E2E8F0" }} />
         <div className="flex-1 min-w-0">
-          <span className="text-sm text-gray-500 font-medium">{name}</span>
-          <span className="text-xs text-gray-400 ml-2">{source}</span>
+          <span style={{ fontSize: 12, fontWeight: 500, color: "#94A3B8" }}>{name}</span>
+          <span style={{ fontSize: 11, color: "#CBD5E1", marginLeft: 8 }}>{source}</span>
         </div>
-        <span className="text-xs text-gray-400">waiting</span>
+        <span style={{ fontSize: 11, color: "#CBD5E1" }}>waiting</span>
       </div>
     );
   }
 
   if (status === "running") {
     return (
-      <div className="flex items-center gap-3 py-2">
-        <div className="w-2 h-2 rounded-full bg-blue-500 shrink-0 animate-pulse" />
-        <span className="text-lg w-7 text-center">{icon}</span>
+      <div className="flex items-center gap-3 px-5 py-3">
+        <div className="w-2 h-2 rounded-full shrink-0 pulse-dot" style={{ background: "#0EA5E9" }} />
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-sm text-blue-700 font-semibold">{name}</span>
-            <span className="text-xs text-gray-400">{source}</span>
+          <div className="flex items-center gap-2 mb-1.5">
+            <span style={{ fontSize: 12, fontWeight: 500, color: "#0F172A" }}>{name}</span>
+            <span style={{ fontSize: 11, color: "#94A3B8" }}>{source}</span>
           </div>
-          <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-            <div className="h-full bg-blue-400 rounded-full animate-pulse" style={{ width: "60%" }} />
-          </div>
+          <div className="h-[2px] rounded-full overflow-hidden"
+            style={{
+              background: "linear-gradient(90deg, #E0F2FE 0%, #0EA5E9 50%, #E0F2FE 100%)",
+              backgroundSize: "200% 100%",
+              animation: "shimmer 1.2s infinite linear",
+            }} />
         </div>
-        <span className="text-xs text-blue-600 tabular-nums w-12 text-right">{(timer / 1000).toFixed(1)}s</span>
+        <span style={{ fontSize: 11, color: "#94A3B8", fontFamily: "monospace", marginLeft: "auto" }}>{(timer / 1000).toFixed(1)}s</span>
       </div>
     );
   }
 
   if (status === "complete") {
     return (
-      <div className="flex items-center gap-3 py-2">
-        <div className="w-2 h-2 rounded-full bg-green-500 shrink-0" />
-        <span className="text-lg w-7 text-center">{icon}</span>
+      <div className="flex items-center gap-3 px-5 py-3">
+        <div className="w-2 h-2 rounded-full shrink-0" style={{ background: "#10B981" }} />
         <div className="flex-1 min-w-0">
-          <span className="text-sm text-gray-800 font-medium">{name}</span>
-          <span className="text-xs text-gray-400 ml-2">{source}</span>
+          <span style={{ fontSize: 12, fontWeight: 500, color: "#0F172A" }}>{name}</span>
+          <span style={{ fontSize: 11, color: "#94A3B8", marginLeft: 8 }}>{source}</span>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <ScoreBadge score={state.score} />
-          <span className="text-xs text-gray-400 tabular-nums">{(state.duration_ms / 1000).toFixed(1)}s</span>
+          <span style={{ fontSize: 10, color: "#CBD5E1", fontFamily: "monospace" }}>{(state.duration_ms / 1000).toFixed(1)}s</span>
         </div>
       </div>
     );
@@ -76,14 +86,13 @@ function AgentRow({ agentDef, state, timer }) {
 
   if (status === "error") {
     return (
-      <div className="flex items-center gap-3 py-2">
-        <div className="w-2 h-2 rounded-full bg-red-400 shrink-0" />
-        <span className="text-lg w-7 text-center">{icon}</span>
+      <div className="flex items-center gap-3 px-5 py-3">
+        <div className="w-2 h-2 rounded-full shrink-0" style={{ background: "#EF4444" }} />
         <div className="flex-1 min-w-0">
-          <span className="text-sm text-red-600 font-medium">{name}</span>
-          <span className="text-xs text-red-400 ml-2 truncate">{state.error ?? "failed"}</span>
+          <span style={{ fontSize: 12, fontWeight: 500, color: "#EF4444" }}>{name}</span>
+          <span style={{ fontSize: 11, color: "#FCA5A5", marginLeft: 8 }} className="truncate">{state.error ?? "failed"}</span>
         </div>
-        <span className="text-xs text-gray-400 tabular-nums">{(state.duration_ms / 1000).toFixed(1)}s</span>
+        <span style={{ fontSize: 11, color: "#CBD5E1", fontFamily: "monospace" }}>{(state.duration_ms / 1000).toFixed(1)}s</span>
       </div>
     );
   }
@@ -94,7 +103,7 @@ function AgentRow({ agentDef, state, timer }) {
 export default function AgentPipeline({ zipCode, onAnalysisComplete }) {
   const [agentStates, setAgentStates] = useState({});
   const [timers, setTimers] = useState({});
-  const [pipelineStatus, setPipelineStatus] = useState("running"); // running | complete | error
+  const [pipelineStatus, setPipelineStatus] = useState("running");
   const intervalsRef = useRef({});
   const esRef = useRef(null);
 
@@ -144,7 +153,7 @@ export default function AgentPipeline({ zipCode, onAnalysisComplete }) {
           if (onAnalysisComplete) onAnalysisComplete(data.analysis);
         }
       } catch {
-        // ignore parse errors
+        // ignore
       }
     };
 
@@ -165,32 +174,44 @@ export default function AgentPipeline({ zipCode, onAnalysisComplete }) {
   const isLive = pipelineStatus === "running";
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+    <div style={{ background: "white", border: "1px solid #E2E8F0", borderRadius: 12, overflow: "hidden", boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
       {/* Header */}
-      <div className="flex items-center justify-between mb-1">
-        <h3 className="text-base font-bold text-gray-900">Agentic AI Pipeline</h3>
+      <div className="px-5 py-4 flex items-center justify-between" style={{ borderBottom: "1px solid #E2E8F0" }}>
+        <div>
+          <h3 style={{ color: "#0F172A", fontWeight: 600, fontSize: 13 }}>AI Pipeline</h3>
+          <p style={{ fontSize: 11, color: "#94A3B8", marginTop: 2 }}>9 specialist agents analyzing ZIP {zipCode}</p>
+        </div>
         {isLive ? (
-          <span className="flex items-center gap-1.5 text-xs font-semibold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full">
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse inline-block" />
+          <span className="flex items-center gap-1.5" style={{
+            background: "#F0F9FF", border: "1px solid #BAE6FD", borderRadius: 20,
+            padding: "4px 10px", fontSize: 10, color: "#0369A1", fontWeight: 500,
+          }}>
+            <span className="w-1.5 h-1.5 rounded-full pulse-dot inline-block" style={{ background: "#0EA5E9" }} />
             LIVE
           </span>
         ) : pipelineStatus === "complete" ? (
-          <span className="text-xs font-semibold text-green-600 bg-green-50 px-2.5 py-1 rounded-full">✓ Complete</span>
+          <span style={{
+            background: "#ECFDF5", border: "1px solid #A7F3D0", borderRadius: 20,
+            padding: "4px 10px", fontSize: 10, color: "#065F46", fontWeight: 600,
+          }}>Complete</span>
         ) : (
-          <span className="text-xs font-semibold text-red-500 bg-red-50 px-2.5 py-1 rounded-full">Error</span>
+          <span style={{
+            background: "#FEF2F2", border: "1px solid #FCA5A5", borderRadius: 20,
+            padding: "4px 10px", fontSize: 10, color: "#991B1B", fontWeight: 600,
+          }}>Error</span>
         )}
       </div>
-      <p className="text-xs text-gray-400 mb-4">9 specialist agents analyzing ZIP {zipCode}</p>
 
       {/* Agent rows */}
-      <div className="divide-y divide-gray-50">
-        {AGENTS.map(agent => (
-          <AgentRow
-            key={agent.key}
-            agentDef={agent}
-            state={agentStates[agent.key]}
-            timer={timers[agent.key] ?? 0}
-          />
+      <div>
+        {AGENTS.map((agent, i) => (
+          <div key={agent.key} style={{ borderBottom: i < AGENTS.length - 1 ? "1px solid #F1F5F9" : "none" }}>
+            <AgentRow
+              agentDef={agent}
+              state={agentStates[agent.key]}
+              timer={timers[agent.key] ?? 0}
+            />
+          </div>
         ))}
       </div>
     </div>
